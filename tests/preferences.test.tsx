@@ -1,3 +1,4 @@
+import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConsentBanner, ConsentPreferences, ConsentPreferencesTrigger, ConsentProvider } from "../src";
 import { action, cleanupDom, click, decided, key, mount, q, snapshot } from "./helpers";
@@ -113,11 +114,33 @@ describe("ConsentPreferences", () => {
     expect(trigger.textContent).toBe("Privacy settings");
     trigger.focus();
     await click(trigger);
-    expect(q('[data-fancy-compliance="preferences"]')).not.toBeNull();
+    const dialog = q('[data-fancy-compliance="preferences"]')!;
+    expect(dialog.contains(document.activeElement)).toBe(true);
 
     await key(document.activeElement, "Escape");
     expect(q('[data-fancy-compliance="preferences"]')).toBeNull();
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it("keeps Tab inside the dialog", async () => {
+    await mount(
+      <ConsentProvider value={snapshot()} onDecide={vi.fn()} onWithdraw={vi.fn()}>
+        <ConsentBanner />
+        <ConsentPreferences />
+      </ConsentProvider>,
+    );
+    await click(action("customise"));
+    const dialog = q('[data-fancy-compliance="preferences"]')!;
+    const save = dialog.querySelector<HTMLButtonElement>('[data-fancy-compliance-action="save"]')!;
+    const close = dialog.querySelector<HTMLButtonElement>('[data-fancy-compliance-action="close"]')!;
+
+    save.focus();
+    await key(save, "Tab");
+    expect(document.activeElement).toBe(close);
+    await act(async () => {
+      close.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true }));
+    });
+    expect(document.activeElement).toBe(save);
   });
 
   it("resolves category text from the host's messages first, then the server, then English", async () => {
