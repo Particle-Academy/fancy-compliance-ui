@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConsentBanner, ConsentProvider } from "../src";
+import { ConsentBanner, ConsentProvider, type ConsentBannerProps } from "../src";
 import { action, cleanupDom, click, decided, mount, q, snapshot } from "./helpers";
 
 afterEach(cleanupDom);
@@ -54,10 +54,23 @@ describe("ConsentBanner", () => {
     expect(onDecide).toHaveBeenCalledWith({ granted: [], source: "banner" });
   });
 
-  it("makes reject exactly as prominent as accept", async () => {
+  // Every layout the banner can take, with and without an app's action class.
+  const layouts: Array<{ name: string; props: ConsentBannerProps }> = [
+    { name: "default", props: {} },
+    { name: "bar top", props: { variant: "bar", position: "top" } },
+    ...(["bottom-start", "bottom-end", "top-start", "top-end"] as const).flatMap((position) => [
+      { name: `card ${position}`, props: { variant: "card", position } as ConsentBannerProps },
+      { name: `corner ${position}`, props: { variant: "corner", position } as ConsentBannerProps },
+    ]),
+    { name: "app action class", props: { classNames: { action: "bg-emerald-700 text-white rounded-none" } } },
+    { name: "card + app action class", props: { variant: "card", classNames: { action: "bg-emerald-700 justify-start" } } },
+    { name: "corner + app action class", props: { variant: "corner", classNames: { action: "bg-emerald-700" } } },
+  ];
+
+  it.each(layouts)("makes reject exactly as prominent as accept ($name)", async ({ props }) => {
     await mount(
       <ConsentProvider value={snapshot()} onDecide={vi.fn()} onWithdraw={vi.fn()}>
-        <ConsentBanner />
+        <ConsentBanner {...props} />
       </ConsentProvider>,
     );
     const accept = action("accept-all")!;
@@ -74,20 +87,26 @@ describe("ConsentBanner", () => {
     expect(accept.className).toContain("min-h-11");
     expect(accept.textContent).toBe("Accept all");
     expect(reject.textContent).toBe("Reject all");
+    for (const cls of (props.classNames?.action ?? "").split(" ").filter(Boolean)) {
+      expect(accept.className.split(" ")).toContain(cls);
+    }
   });
 
-  it("is a labelled, non-modal region that does not take focus", async () => {
+  it.each(layouts)("is a labelled, non-modal region that does not take focus ($name)", async ({ props }) => {
     const before = document.activeElement;
     await mount(
-      <ConsentProvider value={snapshot()} onDecide={vi.fn()} onWithdraw={vi.fn()}>
-        <ConsentBanner />
+      <ConsentProvider value={snapshot()} onDecide={vi.fn()} onWithdraw={vi.fn()} dir="rtl">
+        <ConsentBanner {...props} />
       </ConsentProvider>,
     );
     const banner = q('[data-fancy-compliance="banner"]')!;
     expect(banner.getAttribute("role")).toBe("region");
     expect(banner.hasAttribute("aria-modal")).toBe(false);
+    expect(banner.getAttribute("dir")).toBe("rtl");
     const labelledBy = banner.getAttribute("aria-labelledby")!;
     expect(document.getElementById(labelledBy)?.textContent).toBe("Your privacy choices");
+    const describedBy = banner.getAttribute("aria-describedby")!;
+    expect(document.getElementById(describedBy)?.getAttribute("data-fancy-compliance")).toBe("banner-body");
     expect(document.activeElement).toBe(before);
   });
 

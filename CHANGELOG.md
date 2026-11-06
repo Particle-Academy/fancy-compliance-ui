@@ -10,6 +10,74 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-06
+
+A styling pass. **With no new props, the banner and dialog look the same as 0.1.0 in light
+mode and keep their layout in both modes.** The markup is not byte-identical: see
+**Changed** for exactly what differs. Nothing was renamed or removed.
+
+### Added
+
+- **`ConsentBanner` `variant`**: `"bar"` (the default, the 0.1.0 full-width bar), `"card"`
+  (a floating react-fancy `Card`, up to 28rem wide, inset from the edges) and `"corner"` (a
+  compact `Card`, up to 20rem, with the three actions always stacked). On a phone both
+  floating variants span the width less a 1rem margin, with the actions stacked.
+  **Consumer action:** none. Pass `variant="card"` or `variant="corner"` to opt in.
+- **`ConsentBanner` `position`**: `"top"` / `"bottom"` for a bar (default `"bottom"`);
+  `"bottom-start"` / `"bottom-end"` / `"top-start"` / `"top-end"` for a card or corner
+  (default `"bottom-start"`, clear of react-fancy's toast stack at `bottom-end`). `start` and
+  `end` are logical, so they mirror under `dir="rtl"`. The props type is a union, so a bar
+  position on a card is a type error. **Consumer action:** none.
+- **`classNames` on every styled component**, one key per part, merged after the package's
+  own classes with react-fancy's `cn` (tailwind-merge), so a conflicting app class replaces
+  the default instead of fighting it in the cascade:
+  - `ConsentBanner`: `surface`, `layout`, `content`, `title`, `body`, `actions`, `action`, `error`.
+  - `ConsentPreferences`: `surface`, `header`, `title`, `content`, `body`, `categories`,
+    `category`, `categoryLabel`, `categoryDescription`, `categoryPurposes`, `alwaysOn`,
+    `switch`, `actions`, `action`, `error`.
+  - `ConsentPreferencesTrigger`: `trigger`. `ConsentReloadNotice`: `surface`, `body`, `action`.
+
+  There is **one `action` key** for accept, reject and customise (and reject, accept and save
+  in the dialog), and no per-button key: a per-button class would let a page make accepting
+  easier than refusing. A type test fails if one is added. **Consumer action:** none.
+- **Handles for the new parts**: `data-fancy-compliance-variant` and
+  `data-fancy-compliance-position` on the banner; `banner-layout`, `banner-content`,
+  `banner-title`, `banner-body`, `preferences-header`, `preferences-title`,
+  `preferences-content`, `preferences-body`, `preferences-categories`, `category-label`,
+  `category-description`, `category-purposes`, `always-on` and `reload-body` as values of
+  `data-fancy-compliance`. **Consumer action:** none.
+- Exported types: `ConsentBannerVariant`, `ConsentBannerPosition`, `ConsentBannerBarPosition`,
+  `ConsentBannerFloatingPosition`, `ConsentBannerClassNames`, `ConsentPreferencesClassNames`,
+  `ConsentPreferencesTriggerClassNames`, `ConsentReloadNoticeClassNames`,
+  `ConsentReloadNoticeProps`. **Consumer action:** none.
+
+### Changed
+
+- **Colours come from react-fancy's theme tokens** (`--fancy-surface`, `--fancy-border-strong`,
+  `--fancy-border`, `--fancy-text`, `--fancy-text-soft` and their `-dark` twins), written the
+  way react-fancy's own `Card` and `Modal` write them, instead of fixed zinc classes. Set
+  those variables and the banner and dialog follow the rest of your react-fancy UI.
+  With none set, the fallbacks are react-fancy's defaults, and the rendered colours are:
+  - **Light mode: identical** (white surface, zinc-300 border, zinc-900 title, zinc-700 body).
+  - **Dark mode: two text colours move one step**, to react-fancy's dark defaults: titles
+    zinc-50 to zinc-100, body text zinc-200 to zinc-300. Surface (zinc-900), border
+    (zinc-700) and dividers are unchanged. Measured in Chromium: lowest text contrast 10.08:1
+    in dark mode, 10.43:1 in light, both above AAA's 7:1.
+
+  **Consumer action:** none. If you want 0.1.0's brighter dark text, set
+  `--fancy-text-dark: var(--color-zinc-50)` and `--fancy-text-soft-dark: var(--color-zinc-200)`.
+- **The markup differs from 0.1.0 in these ways, and only these**: the colour classes above;
+  the new `data-fancy-compliance*` attributes listed under Added; class strings are now
+  produced by `cn`, so the trailing space 0.1.0 left on the banner and trigger when no
+  `className` was passed is gone. **Consumer action:** only if a snapshot test of yours
+  stores this markup: update the snapshot.
+- **`className` now merges instead of appending**, on every component. A `className` that
+  conflicts with a default (say `z-50` on the banner, or `no-underline` on the trigger) now
+  replaces it; in 0.1.0 both classes were present and whichever Tailwind emitted later won.
+  **Consumer action:** none, unless you relied on a conflicting class losing.
+- `tsc` now typechecks `tests/` too (except `packaging.test.ts`, which needs Node types this
+  repo does not carry), so type-level guards in tests are enforced. **Consumer action:** none.
+
 ## [0.1.0] - 2026-11-05
 
 ### Added

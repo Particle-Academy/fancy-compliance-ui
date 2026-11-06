@@ -13,5 +13,9 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist"
   },
-  "include": ["src"]
+  // The tests are typechecked so `@ts-expect-error` guards (no per-button class
+  // key) are enforced. packaging.test.ts reads package.json through node:fs,
+  // and this repo carries no Node types, so it is the one file left out.
+  "include": ["src", "tests"],
+  "exclude": ["tests/packaging.test.ts"]
 }

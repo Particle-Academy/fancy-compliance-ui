@@ -85,6 +85,112 @@ directly: it is fully controlled and never invents state.
 Every action button carries `data-fancy-compliance-action` (`accept-all`, `reject-all`,
 `customise`, `save`, `close`, `reload`).
 
+### Banner variants
+
+```tsx
+<ConsentBanner />                                         // a full-width bar at the bottom
+<ConsentBanner variant="bar" position="top" />            // a bar across the top
+<ConsentBanner variant="card" />                          // a floating card, bottom-start
+<ConsentBanner variant="card" position="bottom-end" />
+<ConsentBanner variant="corner" position="top-end" />     // a compact card in a corner
+```
+
+| `variant` | Looks like | `position` (default first) |
+|---|---|---|
+| `bar` (default) | Full width, rule on the inner edge; actions in a row from `sm` | `bottom`, `top` |
+| `card` | A react-fancy `Card`, up to 28rem, 1.5rem from the edges; actions in a row from `sm` | `bottom-start`, `bottom-end`, `top-start`, `top-end` |
+| `corner` | A compact `Card`, up to 20rem, 1rem from the edges; actions always stacked | the same four |
+
+`start` and `end` are logical: `bottom-end` is the bottom right in a left-to-right page and
+the bottom left under `dir="rtl"`. On a phone, `card` and `corner` span the width less a 1rem
+margin, with the actions stacked. The banner's handle carries the layout in use:
+`data-fancy-compliance-variant` and `data-fancy-compliance-position`.
+
+### Styling parts: `classNames`
+
+Every styled component takes `className` (its root) and `classNames`, one key per part. Your
+classes are merged after ours with react-fancy's `cn` (tailwind-merge), so a conflicting class
+of yours replaces the default rather than competing with it: `classNames.action =
+"justify-start"` removes our `justify-center`.
+
+| Component | Keys |
+|---|---|
+| `ConsentBanner` | `surface`, `layout`, `content`, `title`, `body`, `actions`, `action`, `error` |
+| `ConsentPreferences` | `surface`, `header`, `title`, `content`, `body`, `categories`, `category`, `categoryLabel`, `categoryDescription`, `categoryPurposes`, `alwaysOn`, `switch`, `actions`, `action`, `error` |
+| `ConsentPreferencesTrigger` | `trigger` |
+| `ConsentReloadNotice` | `surface`, `body`, `action` |
+
+**There is one `action` key, and no key per button.** It applies to Accept all, Reject all
+and Customise alike (Reject all, Accept all and Save in the dialog), so whatever you do to one
+you do to all three. That is deliberate: refusing must stay exactly as easy as accepting. If
+you need the buttons to differ, build your own banner (below) and take on that duty.
+
+`classNames.surface` is merged after `className`. Dark-mode classes are their own utilities:
+`title: "text-amber-950"` replaces our light-mode title colour and leaves the dark one, so
+add `dark:text-amber-50` as well, or theme with the tokens instead.
+
+### Theming
+
+The banner and dialog use react-fancy's theme tokens, the same CSS variables its `Card`,
+`Modal` and `Button` read, so set them once and every surface follows:
+
+```css
+:root {
+  --fancy-surface: var(--color-stone-50);      --fancy-surface-dark: var(--color-stone-900);
+  --fancy-border-strong: var(--color-stone-300); --fancy-border-strong-dark: var(--color-stone-700);
+  --fancy-text: var(--color-stone-950);         --fancy-text-dark: var(--color-stone-50);
+  --fancy-text-soft: var(--color-stone-700);    --fancy-text-soft-dark: var(--color-stone-300);
+}
+```
+
+The `card` and `corner` variants ARE a react-fancy `Card` (`variant="outlined"`), and the
+dialog is its `Modal`. Unset, every token falls back to react-fancy's default (the
+`THEME_TOKENS` table it exports), and those defaults are AAA: body text is above 10:1 in both
+light and dark mode. **If you set the tokens, the contrast is yours to check**: keep body
+text at 7:1 or more against the surface. Dark mode follows your `dark:` variant; import
+`@particle-academy/react-fancy/dark-variant.css` to drive it from a `.dark` class or
+`[data-theme="dark"]`.
+
+### Build your own banner on `useConsent()`
+
+If no variant fits, render your own UI on the public hook. Keep `ConsentPreferences` and
+`ConsentPreferencesTrigger` for the dialog and withdrawal:
+
+```tsx
+import { useConsent } from "@particle-academy/fancy-compliance-ui";
+import { Button } from "@particle-academy/react-fancy";
+
+function MyBanner() {
+  const consent = useConsent();
+  if (!consent.needsConsent) return null;
+  const optional = consent.value.categories.filter((c) => !c.required).map((c) => c.key);
+  const action = { type: "button", size: "lg", className: "min-h-11", disabled: consent.pending } as const;
+
+  return (
+    <section role="region" dir={consent.dir} aria-label={consent.t("fancy-compliance.banner.title")}>
+      <p>{consent.t("fancy-compliance.banner.body")}</p>
+      <Button {...action} onClick={() => consent.decide(optional, "banner")}>
+        {consent.t("fancy-compliance.action.accept-all")}
+      </Button>
+      <Button {...action} onClick={() => consent.decide([], "banner")}>
+        {consent.t("fancy-compliance.action.reject-all")}
+      </Button>
+      <Button {...action} onClick={consent.openPreferences}>
+        {consent.t("fancy-compliance.action.customise")}
+      </Button>
+    </section>
+  );
+}
+```
+
+**Once you render the buttons, equal prominence is your duty, not this package's.** The
+built-in banner guarantees, and tests, that accept, reject and customise are the same
+component, size, classes and container. Your banner has no such test unless you write one.
+Keep reject as visible and as easy to reach as accept: same style, same size, no extra click,
+no colour that makes one the obvious choice. That is what regulators look for, and it is why
+`classNames` has no per-button key. The same goes for the rest of what the built-in banner
+does for you: a non-modal labelled region, 44px targets, AAA contrast, and `dir`.
+
 ### What is blocked, and what is not
 
 - `ConsentGate` renders nothing of its children until consent, never under an outdated
@@ -118,7 +224,8 @@ defaults for the stock categories, then the key.
   is opened after mount.)
 - Targets are at least 44px. A switch's track is 52x28; its 44px+ target is the label bound
   to it, which covers the whole category row.
-- Text is zinc-900 / zinc-700 on white (and the reverse in dark mode), above 7:1.
+- With react-fancy's default tokens, text is zinc-900 / zinc-700 on white, and zinc-100 /
+  zinc-300 on zinc-900 in dark mode: above 10:1 either way, past AAA's 7:1.
 - `dir` goes on the banner and the portalled dialog; react-fancy 6.9.0 mirrors the rest.
 
 ## Agents (Human+)

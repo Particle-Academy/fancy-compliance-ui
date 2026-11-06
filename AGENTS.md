@@ -29,7 +29,18 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
 - **Agents read, never grant.** No export may record consent without the person acting, and any
   future bridge is read-only. Activity events say `actor: "human"`.
 - **Every visible string goes through `t()`** or the category text lookup. No literals in JSX.
-- Targets `min-h-11`; text zinc-900/zinc-700 on white (AAA); `dir` on the banner and the dialog.
+- **One `action` class key, never a per-button key.** `classNames.action` reaches all three
+  choices; `tests/styling.test.tsx` has a `@ts-expect-error` that fails `tsc` if an `accept` /
+  `reject` key appears.
+- **Colours are react-fancy theme tokens, written literally** in `src/styles.ts` (Tailwind finds
+  classes by scanning `dist/`, so no runtime-built class names). Their fallbacks must equal
+  `THEME_TOKENS`, and the defaults must stay AAA: `tests/styling.test.tsx` checks both.
+- **App classes merge last** through `merge` (react-fancy's `cn`, tailwind-merge): ours first,
+  then `className`, then `classNames.<part>`.
+- `variant="bar"` with no new props keeps the 0.1.0 layout and `<section>` root; `card` and
+  `corner` are a react-fancy `Card`. Positions use logical `start-*` / `end-*`, never `left` /
+  `right`.
+- Targets `min-h-11`; `dir` on the banner and the dialog.
 
 ## Tests
 
