@@ -2,6 +2,7 @@ import { useId, type ReactNode } from "react";
 import { Button, Card, Heading, Text } from "@particle-academy/react-fancy";
 import { useConsentInternal } from "./context";
 import { ACTION_CLASS, ACTION_SIZE, merge, SOFT_TEXT_CLASS, SURFACE_CLASS, TEXT_CLASS } from "./styles";
+import { AGENT_OFF_LIMITS } from "./agents";
 
 export type ConsentBannerVariant = "bar" | "card" | "corner";
 
@@ -191,6 +192,8 @@ export function ConsentBanner(props: ConsentBannerProps) {
     dir: consent.dir,
     "data-fancy-compliance": "banner",
     "data-fancy-compliance-variant": variant,
+    // Agents may see the banner exists; they may never use it.
+    ...AGENT_OFF_LIMITS,
   };
 
   if (props.variant === "card" || props.variant === "corner") {

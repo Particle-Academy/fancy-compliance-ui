@@ -237,6 +237,31 @@ consent UI for the person to use. If a bridge is ever added for this surface, it
 read-only: it may report `allows`, the categories and the current decision, and nothing
 else. `onActivity` events always say `actor: "human"`.
 
+**The rule is enforced in the markup, not left to each host.** The banner (every variant:
+`bar`, `card`, `corner`), the preferences dialog and the preferences trigger each carry
+`data-agent-off-limits="consent"` on their root. That is the kit's fence for agents:
+`@particle-academy/agent-integrations` 0.58.0 or later refuses every agent action whose
+target resolves inside such an element (click, field set, submit, focus, scroll, and a label
+or button outside that would activate a control inside), refuses it before a `pendingMode`
+confirm can stage it, and describes the area to the agent only as "consent region" or
+"consent dialog", with no labels or values. A person approving an agent's click on
+"Accept all" would still be the agent's act, which is why a staged confirm is not enough.
+The full marker spec is in agent-integrations' README, under "Off-limits areas".
+
+This package does not import agent-integrations: the attribute is the whole contract, so any
+agent tool that honours it gets the rule. The `data-fancy-compliance*` handles are unchanged.
+If you build your own consent control from `useConsent()`, or put one in a `ConsentGate`
+`fallback`, spread the exported `AGENT_OFF_LIMITS` onto its root:
+
+```tsx
+import { AGENT_OFF_LIMITS } from "@particle-academy/fancy-compliance-ui";
+
+<div {...AGENT_OFF_LIMITS}>{/* your consent switch */}</div>
+```
+
+`ConsentReloadNotice` is not marked on its own: its one action reloads the page, which
+records nothing. Inside the dialog it is fenced with the rest.
+
 ## License
 
 MIT

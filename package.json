@@ -1,6 +1,6 @@
 {
   "name": "@particle-academy/fancy-compliance-ui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Consent banner, preferences dialog and script gating for React, built from react-fancy: reject as easy as accept, withdrawal at any time, AAA and RTL. Controlled, with stable handles; agents may read consent, never grant it.",
   "keywords": [
     "consent",

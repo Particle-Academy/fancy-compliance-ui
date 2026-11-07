@@ -3,6 +3,7 @@ import { Button, Heading, Modal, Switch, Text } from "@particle-academy/react-fa
 import { useConsentInternal } from "./context";
 import { categoryText, purposeText } from "./messages";
 import { ACTION_CLASS, ACTION_SIZE, BORDER_STRONG_CLASS, DIVIDE_CLASS, merge, SOFT_TEXT_CLASS, TEXT_CLASS } from "./styles";
+import { AGENT_OFF_LIMITS } from "./agents";
 import { ConsentReloadNotice } from "./ConsentReloadNotice";
 import type { ConsentCategory } from "./types";
 
@@ -148,6 +149,7 @@ export function ConsentPreferences({ className, classNames = {} }: ConsentPrefer
       aria-labelledby={titleId}
       dir={consent.dir}
       data-fancy-compliance="preferences"
+      {...AGENT_OFF_LIMITS}
       className={merge(className, classNames.surface) || undefined}
     >
       <div

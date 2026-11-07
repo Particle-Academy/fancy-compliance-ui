@@ -28,6 +28,11 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
   a script still loading. Never claim a removed tag stopped anything.
 - **Agents read, never grant.** No export may record consent without the person acting, and any
   future bridge is read-only. Activity events say `actor: "human"`.
+- **Every consent control's root spreads `AGENT_OFF_LIMITS`** (`src/agents.ts`,
+  `data-agent-off-limits="consent"`): the banner in every variant, the preferences dialog, the
+  trigger. agent-integrations' DOM navigation fences it; this package never imports that.
+  A new consent control gets it too. `tests/agent-off-limits.test.tsx` checks that no control
+  rendered by any component sits outside the fence.
 - **Every visible string goes through `t()`** or the category text lookup. No literals in JSX.
 - **One `action` class key, never a per-button key.** `classNames.action` reaches all three
   choices; `tests/styling.test.tsx` has a `@ts-expect-error` that fails `tsc` if an `accept` /

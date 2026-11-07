@@ -2,6 +2,7 @@ import { useCallback, type ReactNode } from "react";
 import { Button } from "@particle-academy/react-fancy";
 import { useConsentInternal } from "./context";
 import { merge } from "./styles";
+import { AGENT_OFF_LIMITS } from "./agents";
 
 export interface ConsentPreferencesTriggerClassNames {
   /** The trigger button. Merged after `className`. */
@@ -31,6 +32,7 @@ export function ConsentPreferencesTrigger({ className, classNames, children }: C
       type="button"
       variant="ghost"
       data-fancy-compliance="trigger"
+      {...AGENT_OFF_LIMITS}
       aria-haspopup="dialog"
       aria-expanded={consent.preferencesOpen}
       className={merge("min-h-11 underline", className, classNames?.trigger)}

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -20,5 +20,14 @@ describe("package.json", () => {
 
   it("ships the changelog and readme", () => {
     expect(pkg.files).toEqual(expect.arrayContaining(["dist", "README.md", "CHANGELOG.md"]));
+  });
+
+  // The agent fence is a plain data attribute (tests/agent-off-limits.test.tsx).
+  // It must stay that way: this package imports neither Inertia nor agent-integrations.
+  it("no source imports agent-integrations", () => {
+    for (const file of readdirSync(join(process.cwd(), "src"))) {
+      const src = readFileSync(join(process.cwd(), "src", file), "utf8");
+      expect(src, file).not.toMatch(/from\s+["']@particle-academy\/agent-integrations/);
+    }
   });
 });

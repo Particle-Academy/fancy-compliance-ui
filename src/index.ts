@@ -22,6 +22,7 @@ export type { ConsentScriptOptions, ConsentScriptStatus } from "./script";
 export { ConsentRequestError, createConsentClient, readConsentProps, useConsentController } from "./client";
 export type { ConsentClient, ConsentClientOptions } from "./client";
 export { DEFAULT_MESSAGES } from "./messages";
+export { AGENT_OFF_LIMITS } from "./agents";
 export type {
   ConsentActivity,
   ConsentCategory,

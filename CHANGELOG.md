@@ -10,6 +10,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-07
+
+### Fixed
+
+- **An agent could use the consent controls.** The README promised that an agent may read
+  consent and never grant, record or withdraw it, but nothing in the markup said so, and
+  agent-integrations' DOM navigation let an agent click "Accept all", flip a category switch
+  or save the dialog. A `pendingMode` confirm did not fix it: a person approving an agent's
+  click is still the agent's act. The banner (every variant), the preferences dialog and the
+  preferences trigger now carry `data-agent-off-limits="consent"`, which
+  `@particle-academy/agent-integrations` 0.58.0 refuses on every action path, before
+  staging, and describes only as "consent region" / "consent dialog". This package still
+  imports nothing from agent-integrations; the attribute is the contract. Found by PS Mapper.
+  The `data-fancy-compliance*` handles are unchanged. **Consumer action:** update both
+  packages. Hosts that wrote their own guard for these controls can drop it.
+
+### Added
+
+- `AGENT_OFF_LIMITS` (`{ "data-agent-off-limits": "consent" }`), to spread onto a consent
+  control you build yourself from `useConsent()` or put in a `ConsentGate` `fallback`.
+
 ## [0.2.0] - 2026-11-06
 
 A styling pass. **With no new props, the banner and dialog look the same as 0.1.0 in light
