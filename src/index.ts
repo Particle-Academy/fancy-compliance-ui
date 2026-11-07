@@ -9,6 +9,8 @@ export type {
   ConsentBannerProps,
   ConsentBannerVariant,
 } from "./ConsentBanner";
+export { CONSENT_BANNER_SPACE_VARS } from "./bannerSpace";
+export type { ConsentBannerEdge } from "./bannerSpace";
 export { ConsentPreferences } from "./ConsentPreferences";
 export type { ConsentPreferencesClassNames, ConsentPreferencesProps } from "./ConsentPreferences";
 export { ConsentPreferencesTrigger } from "./ConsentPreferencesTrigger";

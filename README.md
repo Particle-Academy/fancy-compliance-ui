@@ -48,7 +48,8 @@ export function Layout({ children }) {
 
   return (
     <ConsentProvider {...consent} messages={myMessages} dir={isRtl ? "rtl" : "ltr"}>
-      <ConsentBanner />
+      {/* reserveSpace pads the page so the bar never covers the footer below */}
+      <ConsentBanner reserveSpace />
       {children}
       <ConsentScript category="analytics" src="https://analytics.example/script.js" />
       <footer>
@@ -69,6 +70,17 @@ On a Blade page, print the props with `@fancyComplianceProps` and read them with
 own the state yourself, pass `value`, `onDecide` and `onWithdraw` to `ConsentProvider`
 directly: it is fully controlled and never invents state.
 
+#### The props never arrive
+
+If `usePage().props.fancyCompliance` is `undefined` (or `null`), `useConsentController`
+does not throw: it holds a snapshot with no categories and `needsConsent: false`, so no
+banner shows and nothing optional is allowed, and it logs one `console.warn` in development.
+The usual cause is the server share not running on that request. With
+`particle-academy/fancy-compliance` older than 0.1.1 under Octane, or an in-process browser
+test server, the prop was shared once at boot and flushed after the first request: upgrade
+it. On 0.1.1 and later, check the page's route is in the `web` group, or add
+`FancyCompliance\Http\ShareInertiaProps` to its group.
+
 ### Components
 
 | Export | What it does | Handle |
@@ -76,7 +88,7 @@ directly: it is fully controlled and never invents state.
 | `ConsentProvider` | Controlled state: `value`, `onDecide`, `onWithdraw`, `messages`, `dir`, `onActivity`, `preferencesOpen` / `onPreferencesOpenChange`, `onReload` | |
 | `ConsentBanner` | Shows while `value.needsConsent` (first visit, or a new policy version) | `data-fancy-compliance="banner"` |
 | `ConsentPreferences` | The dialog: a switch per category with its description and purposes | `data-fancy-compliance="preferences"`, rows `data-fancy-compliance-category="<key>"` |
-| `ConsentPreferencesTrigger` | Opens the dialog at any time; put it in the footer | `data-fancy-compliance="trigger"` |
+| `ConsentPreferencesTrigger` | Opens the dialog at any time. The footer is the usual place; reserve the banner's space so it is never covered (see [Keeping the page clear of the banner](#keeping-the-page-clear-of-the-banner)) | `data-fancy-compliance="trigger"` |
 | `ConsentGate` | Renders children only while the category is allowed; optional `fallback` | `data-fancy-compliance-gate="<key>"` + `data-fancy-compliance-state` |
 | `ConsentScript` / `useConsentScript` | Loads a script once allowed | `script[data-fancy-compliance-script="<key>"]` |
 | `ConsentReloadNotice` | Offers a reload when a withdrawn script could not be stopped | `data-fancy-compliance="reload-notice"` |
@@ -105,6 +117,40 @@ Every action button carries `data-fancy-compliance-action` (`accept-all`, `rejec
 the bottom left under `dir="rtl"`. On a phone, `card` and `corner` span the width less a 1rem
 margin, with the actions stacked. The banner's handle carries the layout in use:
 `data-fancy-compliance-variant` and `data-fancy-compliance-position`.
+
+### Keeping the page clear of the banner
+
+Every variant is `position: fixed`, so on a short page it sits over the page's last
+content: the footer, and the `ConsentPreferencesTrigger` in it. A pointer cannot reach a
+covered trigger, and a keyboard user tabbing to it finds it focused behind the banner
+(WCAG 2.4.11, Focus Not Obscured). So while it shows, the banner publishes the space it
+covers on `<html>`, measured with a `ResizeObserver`:
+
+| Variable | Set by |
+|---|---|
+| `--fancy-consent-banner-h` | a banner anchored to the bottom (`bar` at `bottom`, `card` / `corner` at `bottom-*`) |
+| `--fancy-consent-banner-top-h` | a banner anchored to the top (`bar` at `top`, `card` / `corner` at `top-*`) |
+
+The value is the distance the banner reaches in from that edge, in whole pixels (a card's
+height plus its inset). It is **removed** when the banner hides or unmounts, so always read
+it with a `0px` fallback. Nothing is set during render, so server rendering is unaffected.
+
+The simple case: `<ConsentBanner reserveSpace />` pads `<body>` by it (bottom padding for a
+bottom banner, top for a top one, added to the padding the body already has) and restores
+the body when the banner goes. It is off by default, so an existing layout does not move.
+
+If your layout does not scroll the body, use the variable yourself:
+
+```css
+/* a page whose own wrapper scrolls */
+.page { padding-bottom: var(--fancy-consent-banner-h, 0px); }
+
+/* a full-height app shell, so the banner does not cover a chat composer at the bottom */
+.app-shell { height: calc(100dvh - var(--fancy-consent-banner-h, 0px)); }
+```
+
+With Tailwind: `pb-[var(--fancy-consent-banner-h,0px)]` or
+`h-[calc(100dvh-var(--fancy-consent-banner-h,0px))]`.
 
 ### Styling parts: `classNames`
 

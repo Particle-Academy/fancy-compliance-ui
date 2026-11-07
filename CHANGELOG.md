@@ -25,11 +25,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   imports nothing from agent-integrations; the attribute is the contract. Found by PS Mapper.
   The `data-fancy-compliance*` handles are unchanged. **Consumer action:** update both
   packages. Hosts that wrote their own guard for these controls can drop it.
+- **The fixed banner covered the page's last content.** On a short page the banner sat over
+  the footer, where this README said to put `ConsentPreferencesTrigger`: a pointer could not
+  reach it, and with keyboard focus it was hidden behind the banner (WCAG 2.4.11, Focus Not
+  Obscured). In a full-height app shell it covered the bottom of the shell. While it shows,
+  the banner now publishes the space it covers (see **Added**), and the README's placement
+  advice says to reserve it. **Consumer action:** add `reserveSpace`, or use the variable in
+  your layout. Without either, nothing moves.
+- **`useConsentController` threw when its props were missing.** Given `undefined` or `null`
+  (the `fancyCompliance` Inertia prop absent, as under Octane with fancy-compliance 0.1.0),
+  it threw "Cannot read properties of undefined (reading 'routes')" and took the page down.
+  It now holds a snapshot with no categories and `needsConsent: false`, so no banner shows
+  and nothing optional is allowed, and logs one development-mode `console.warn` naming the
+  missing prop and pointing to the README. Its parameter type is now
+  `ConsentSnapshot | null | undefined`. **Consumer action:** none; fix the missing prop if
+  you see the warning (fancy-compliance 0.1.1 fixes the Octane case).
 
 ### Added
 
 - `AGENT_OFF_LIMITS` (`{ "data-agent-off-limits": "consent" }`), to spread onto a consent
   control you build yourself from `useConsent()` or put in a `ConsentGate` `fallback`.
+- **The banner publishes the space it covers** as CSS custom properties on `<html>`:
+  `--fancy-consent-banner-h` for a banner anchored to the bottom, and
+  `--fancy-consent-banner-top-h` for one anchored to the top, in whole pixels, measured
+  with a `ResizeObserver` (a card's inset included). Removed when the banner hides or
+  unmounts; read them with a fallback, `var(--fancy-consent-banner-h, 0px)`. Set in effects
+  only, so server rendering is unchanged. The names are exported as
+  `CONSENT_BANNER_SPACE_VARS`.
+- **`ConsentBanner` `reserveSpace`** (default `false`): pads `<body>` by that height while
+  the banner shows, on top of the body's own padding, and restores it afterwards.
 
 ## [0.2.0] - 2026-11-06
 

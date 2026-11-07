@@ -1,8 +1,9 @@
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Button, Card, Heading, Text } from "@particle-academy/react-fancy";
 import { useConsentInternal } from "./context";
 import { ACTION_CLASS, ACTION_SIZE, merge, SOFT_TEXT_CLASS, SURFACE_CLASS, TEXT_CLASS } from "./styles";
 import { AGENT_OFF_LIMITS } from "./agents";
+import { useConsentBannerSpace, type ConsentBannerEdge } from "./bannerSpace";
 
 export type ConsentBannerVariant = "bar" | "card" | "corner";
 
@@ -43,6 +44,15 @@ export interface ConsentBannerClassNames {
 interface ConsentBannerCommonProps {
   className?: string;
   classNames?: ConsentBannerClassNames;
+  /**
+   * Pad `<body>` by the banner's height while it shows (bottom padding for a
+   * bottom banner, top for a top one), so the page's last content, and the
+   * footer's `ConsentPreferencesTrigger`, can scroll clear of it. Default
+   * `false`. Either way the banner publishes `--fancy-consent-banner-h` /
+   * `--fancy-consent-banner-top-h` on `<html>` for layouts that place it
+   * themselves.
+   */
+  reserveSpace?: boolean;
 }
 
 export type ConsentBannerProps = ConsentBannerCommonProps &
@@ -117,12 +127,17 @@ const LAYOUT = {
  * accepting.
  */
 export function ConsentBanner(props: ConsentBannerProps) {
-  const { className, classNames = {} } = props;
+  const { className, classNames = {}, reserveSpace = false } = props;
   const variant: ConsentBannerVariant = props.variant ?? "bar";
   const consent = useConsentInternal();
   const titleId = useId();
   const bodyId = useId();
   const { t, value } = consent;
+  // The rendered banner, or null while it is hidden: the space it publishes
+  // follows the element, so hiding or unmounting clears it.
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  const edge: ConsentBannerEdge = (props.position ?? "bottom").startsWith("top") ? "top" : "bottom";
+  useConsentBannerSpace(element, edge, reserveSpace);
 
   if (!value.needsConsent) return null;
 
@@ -206,6 +221,7 @@ export function ConsentBanner(props: ConsentBannerProps) {
     return (
       <Card
         {...region}
+        ref={setElement}
         data-fancy-compliance-position={position}
         variant="outlined"
         size={props.variant === "card" ? "lg" : "md"}
@@ -222,6 +238,7 @@ export function ConsentBanner(props: ConsentBannerProps) {
   return (
     <section
       {...region}
+      ref={setElement}
       data-fancy-compliance-position={position}
       className={merge(BAR_POSITION[position], SURFACE_CLASS, className, classNames.surface)}
     >

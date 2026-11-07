@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ConsentDecision, ConsentRoutes, ConsentSnapshot, ConsentWithdrawal } from "./types";
 
 export class ConsentRequestError extends Error {
@@ -83,20 +83,50 @@ export function createConsentClient({ routes, fetch: fetcher }: ConsentClientOpt
 }
 
 /**
+ * What the controller holds when it was given no props: no categories, no
+ * decision, and no banner. Optional categories stay refused (`allows()` is
+ * false for an unknown key), so nothing loads that needs consent.
+ */
+const MISSING_SNAPSHOT: ConsentSnapshot = { policyVersion: "", categories: [], consent: null, needsConsent: false, routes: null };
+
+const MISSING_PROPS_WARNING =
+  "fancy-compliance-ui: useConsentController() received no consent snapshot (the `fancyCompliance` Inertia prop is missing), so no banner is shown. " +
+  "Check the server shares it on every request: see the README, \"The props never arrive\".";
+
+function isDevelopment(): boolean {
+  // Bundlers replace `process.env.NODE_ENV`; the typeof guard covers a page with no `process`.
+  return typeof process === "undefined" || process.env.NODE_ENV !== "production";
+}
+
+declare const process: { env: { NODE_ENV?: string } };
+
+/**
  * State for `<ConsentProvider>` backed by the server routes:
  * `<ConsentProvider {...useConsentController(props.fancyCompliance)}>`.
  * A new `initial` (an Inertia visit) replaces the state.
+ *
+ * Fails soft when `initial` is missing (undefined or null): it holds a snapshot
+ * that shows no banner and allows nothing optional, and warns once in
+ * development, rather than throwing and taking the page with it.
  */
 export function useConsentController(
-  initial: ConsentSnapshot,
+  initial: ConsentSnapshot | null | undefined,
   options: { routes?: ConsentRoutes; fetch?: typeof fetch } = {},
 ): { value: ConsentSnapshot; onDecide: (d: ConsentDecision) => Promise<void>; onWithdraw: (w: ConsentWithdrawal) => Promise<void> } {
-  const [value, setValue] = useState(initial);
+  const snapshot = initial ?? MISSING_SNAPSHOT;
+  const missing = initial == null;
+  const [value, setValue] = useState(snapshot);
   // Keyed by content, not identity: an `initial` built inline is a new object
   // every render, and replacing state on identity would loop forever.
-  const initialKey = JSON.stringify(initial);
+  const initialKey = JSON.stringify(snapshot);
   useEffect(() => setValue(JSON.parse(initialKey) as ConsentSnapshot), [initialKey]);
-  const routes = options.routes ?? initial.routes ?? null;
+  const warned = useRef(false);
+  useEffect(() => {
+    if (!missing || warned.current || !isDevelopment()) return;
+    warned.current = true;
+    console.warn(MISSING_PROPS_WARNING);
+  }, [missing]);
+  const routes = options.routes ?? snapshot.routes ?? null;
   const fetcher = options.fetch;
   const client = useMemo(() => (routes ? createConsentClient({ routes, fetch: fetcher }) : null), [routes, fetcher]);
 

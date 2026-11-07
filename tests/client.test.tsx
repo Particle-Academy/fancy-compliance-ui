@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConsentRequestError, createConsentClient, readConsentProps, useConsentController } from "../src";
+import { ConsentBanner, ConsentProvider, ConsentRequestError, createConsentClient, readConsentProps, useConsentController } from "../src";
 import { cleanupDom, decided, mount, snapshot } from "./helpers";
 
 afterEach(() => {
@@ -64,6 +64,51 @@ describe("useConsentController", () => {
       await controller!.onDecide({ granted: ["analytics"], source: "banner" });
     });
     expect(controller!.value.needsConsent).toBe(false);
+  });
+
+  // The Inertia prop goes missing when the host's share does not run, for
+  // example under Octane before fancy-compliance 0.1.1. That must not take the
+  // page down with "Cannot read properties of undefined (reading 'routes')".
+  for (const missing of [undefined, null]) {
+    it(`fails soft when initial is ${String(missing)}: no banner, one warning`, async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      let controller: ReturnType<typeof useConsentController> | undefined;
+      function Probe() {
+        controller = useConsentController(missing);
+        return (
+          <ConsentProvider {...controller}>
+            <ConsentBanner />
+          </ConsentProvider>
+        );
+      }
+
+      const m = await mount(<Probe />);
+      await m.rerender(<Probe />);
+
+      expect(controller!.value.needsConsent).toBe(false);
+      expect(controller!.value.categories).toEqual([]);
+      expect(controller!.value.consent).toBeNull();
+      expect(document.querySelector('[data-fancy-compliance="banner"]')).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const message = String(warn.mock.calls[0]![0]);
+      expect(message).toContain("fancyCompliance");
+      expect(message).toContain("README");
+      await m.unmount();
+    });
+  }
+
+  it("picks up the snapshot once it arrives after a missing one", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    let controller: ReturnType<typeof useConsentController> | undefined;
+    function Probe({ initial }: { initial: ReturnType<typeof snapshot> | undefined }) {
+      controller = useConsentController(initial);
+      return null;
+    }
+    const m = await mount(<Probe initial={undefined} />);
+    expect(controller!.value.needsConsent).toBe(false);
+
+    await m.rerender(<Probe initial={snapshot()} />);
+    expect(controller!.value.needsConsent).toBe(true);
   });
 });
 

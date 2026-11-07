@@ -10,11 +10,16 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
   rule: required is always true, unknown is false, otherwise a CURRENT decision granting it.
 - `src/ConsentBanner.tsx`: non-modal region. The three actions share `ACTION_CLASS` and
   `ACTION_SIZE` from `src/styles.ts`.
+- `src/bannerSpace.ts`: `useConsentBannerSpace`, which the banner calls with its element.
+  Sets `--fancy-consent-banner-h` (bottom) / `--fancy-consent-banner-top-h` (top) on `<html>`
+  from a `ResizeObserver`, and pads `<body>` when `reserveSpace`. Effects only, never at
+  render (SSR); removes the variable and restores the body on hide and unmount.
 - `src/ConsentPreferences.tsx`: `Modal` plus its own focus management (react-fancy 6.9.0's
   `Modal` runs `useFocusTrap` before `useAnimation` mounts the panel, so a Modal that starts
   closed never moves, traps or restores focus). Saving only removals sends a withdrawal.
 - `src/ConsentGate.tsx`, `src/script.tsx` (`useConsentScript`), `src/ConsentReloadNotice.tsx`.
 - `src/client.ts`: fetch client for the Laravel routes, `useConsentController`, `readConsentProps`.
+  `useConsentController` fails soft on a missing `initial` (no banner, one dev warning).
 - `src/messages.ts`: `DEFAULT_MESSAGES` and the lookup order.
 
 ## Invariants a change must keep
