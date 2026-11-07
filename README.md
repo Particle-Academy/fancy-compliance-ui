@@ -76,9 +76,9 @@ If `usePage().props.fancyCompliance` is `undefined` (or `null`), `useConsentCont
 does not throw: it holds a snapshot with no categories and `needsConsent: false`, so no
 banner shows and nothing optional is allowed, and it logs one `console.warn` in development.
 The usual cause is the server share not running on that request. With
-`particle-academy/fancy-compliance` older than 0.1.1 under Octane, or an in-process browser
-test server, the prop was shared once at boot and flushed after the first request: upgrade
-it. On 0.1.1 and later, check the page's route is in the `web` group, or add
+`particle-academy/fancy-compliance` older than 0.1.2 under Octane, or an in-process browser
+test server, the prop went missing after the first request: upgrade it. On 0.1.2 and later,
+check the page's route is in the `web` group, or add
 `FancyCompliance\Http\ShareInertiaProps` to its group.
 
 ### Components

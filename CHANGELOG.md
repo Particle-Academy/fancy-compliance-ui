@@ -33,13 +33,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   advice says to reserve it. **Consumer action:** add `reserveSpace`, or use the variable in
   your layout. Without either, nothing moves.
 - **`useConsentController` threw when its props were missing.** Given `undefined` or `null`
-  (the `fancyCompliance` Inertia prop absent, as under Octane with fancy-compliance 0.1.0),
+  (the `fancyCompliance` Inertia prop absent, as under Octane or Pest's in-process browser
+  server with fancy-compliance before 0.1.2),
   it threw "Cannot read properties of undefined (reading 'routes')" and took the page down.
   It now holds a snapshot with no categories and `needsConsent: false`, so no banner shows
   and nothing optional is allowed, and logs one development-mode `console.warn` naming the
   missing prop and pointing to the README. Its parameter type is now
   `ConsentSnapshot | null | undefined`. **Consumer action:** none; fix the missing prop if
-  you see the warning (fancy-compliance 0.1.1 fixes the Octane case).
+  you see the warning (fancy-compliance 0.1.2 fixes the Octane and browser-test cases).
 
 ### Added
 
