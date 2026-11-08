@@ -22,7 +22,7 @@ export interface ConsentPreferencesClassNames {
   title?: string;
   /** The column inside the scrolling body. */
   content?: string;
-  /** The introduction paragraph. */
+  /** The introduction paragraphs: the banner's full text and the intro. */
   body?: string;
   /** The list of categories. */
   categories?: string;
@@ -172,6 +172,10 @@ export function ConsentPreferences({ className, classNames = {} }: ConsentPrefer
       </div>
       <Modal.Body>
         <div data-fancy-compliance="preferences-content" className={merge("flex flex-col gap-4 text-start", classNames.content)}>
+          {/* The banner's full text: on a phone the banner shows a short version. */}
+          <Text as="p" size="md" data-fancy-compliance="preferences-summary" className={merge(SOFT_TEXT_CLASS, classNames.body)}>
+            {t("fancy-compliance.banner.body")}
+          </Text>
           <Text as="p" size="md" data-fancy-compliance="preferences-body" className={merge(SOFT_TEXT_CLASS, classNames.body)}>
             {t("fancy-compliance.preferences.intro")}
           </Text>

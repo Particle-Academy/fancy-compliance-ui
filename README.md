@@ -109,7 +109,7 @@ Every action button carries `data-fancy-compliance-action` (`accept-all`, `rejec
 
 | `variant` | Looks like | `position` (default first) |
 |---|---|---|
-| `bar` (default) | Full width, rule on the inner edge; actions in a row from `sm` | `bottom`, `top` |
+| `bar` (default) | Full width, rule on the inner edge; actions in one row wherever the row is at least 17rem (272px) wide, so on a 320px phone too | `bottom`, `top` |
 | `card` | A react-fancy `Card`, up to 28rem, 1.5rem from the edges; actions in a row from `sm` | `bottom-start`, `bottom-end`, `top-start`, `top-end` |
 | `corner` | A compact `Card`, up to 20rem, 1rem from the edges; actions always stacked | the same four |
 
@@ -117,6 +117,16 @@ Every action button carries `data-fancy-compliance-action` (`accept-all`, `rejec
 the bottom left under `dir="rtl"`. On a phone, `card` and `corner` span the width less a 1rem
 margin, with the actions stacked. The banner's handle carries the layout in use:
 `data-fancy-compliance-variant` and `data-fancy-compliance-position`.
+
+**On a phone** (below Tailwind's `sm`, 640px) every variant shows a short body,
+`fancy-compliance.banner.body-short`, instead of the full `fancy-compliance.banner.body`.
+Both are rendered, on the server too, and a media query shows one, so there is no width
+sniffing and no hydration mismatch; the hidden one is `display: none` and is not read out.
+The full text is always in the preferences dialog, above its introduction. In the `bar`,
+the three actions sit in one row at 320px (about 91px each, 44px tall), and stack only
+where the row is under 17rem. Measured in headless Chromium, the default bar is 199px tall
+at 375x667 (30% of the screen; 355px, 53%, before 0.3.0) and 197px at 320x568 (35%; was
+379px, 67%).
 
 ### Keeping the page clear of the banner
 
@@ -151,6 +161,36 @@ If your layout does not scroll the body, use the variable yourself:
 
 With Tailwind: `pb-[var(--fancy-consent-banner-h,0px)]` or
 `h-[calc(100dvh-var(--fancy-consent-banner-h,0px))]`.
+
+#### Keyboard focus behind the banner: `scroll-padding`
+
+Reserving space keeps the page's *end* clear, but a link in the middle of a long page can
+still be scrolled into view right behind a bottom banner when someone tabs to it (WCAG
+2.4.11). Pair the variable with `scroll-padding`, which tells the browser to keep that
+strip clear when it scrolls something into view:
+
+```css
+html {
+  scroll-padding-bottom: var(--fancy-consent-banner-h, 0px);
+  scroll-padding-top: var(--fancy-consent-banner-top-h, 0px); /* for a top banner */
+}
+```
+
+With Tailwind, on the root element: `scroll-pb-[var(--fancy-consent-banner-h,0px)]`.
+
+What was measured (0.3.0, a page of 30 links 90px apart under the default bottom bar,
+pressing Tab 24 times and checking whether the focused link ended up behind the banner):
+
+| Browser | Without `scroll-padding` | With it |
+|---|---|---|
+| Chromium 151 (headless shell), 375x667 | 11 of 24 focused links behind the banner | 0 of 24 |
+| Chromium 151 (headless shell), 320x568 | 16 of 24 | 0 of 24 |
+| Firefox | not measured | not measured |
+| WebKit / Safari | not measured | not measured |
+
+Firefox and WebKit could not be driven on the machine this was measured on: the installed
+Playwright browser builds did not match the Playwright version available, and both failed
+at page creation. Test them on your own target browsers before relying on it there.
 
 ### Styling parts: `classNames`
 
@@ -259,6 +299,11 @@ Every string is looked up by key. Pass `messages`; anything missing falls back t
 English in `DEFAULT_MESSAGES`, never to the raw key. Category text resolves as: your
 `messages[key]`, then the server's `labelText` / `descriptionText`, then the English
 defaults for the stock categories, then the key.
+
+The banner has two texts: `fancy-compliance.banner.body` (the full text, shown from `sm` up
+and in the preferences dialog) and `fancy-compliance.banner.body-short` (shown on a phone).
+Translate both. If you override only the full text, a phone still shows the English short
+one.
 
 ### Accessibility
 

@@ -10,6 +10,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-08
+
+Council change **CC-fancy-0016**, approved by the owner.
+
+### Fixed
+
+- **The bar banner covered most of a small phone.** A consumer measured it at 53% of a
+  375x667 screen and 67% of a 320x568 one: the body wrapped to 6 or 7 lines and the three
+  actions stacked full width. Measured again in headless Chromium 151 with the default bar:
+  **375x667: 355px (53%) to 199px (30%); 320x568: 379px (67%) to 197px (35%).** From 640px
+  up nothing changed (215px at 640, 153px at 1280, both before and after).
+
+### Changed
+
+- **Below `sm` (640px) every variant shows a short body**, the new message key
+  `fancy-compliance.banner.body-short` (English default: "We use necessary cookies, and
+  others only if you allow them. You can change your mind at any time."). Both texts are
+  rendered, on the server too, and a media query shows one: no width sniffing, so SSR and
+  hydration are unchanged. The banner's `aria-describedby` still points at
+  `banner-body`, and the hidden text is `display: none`, so it is not read out.
+  New handles: `banner-body-short` and `banner-body-full` inside `banner-body`.
+  **Consumer action:** if you translate the banner, add `fancy-compliance.banner.body-short`
+  to your `messages`; until you do, a phone shows the English short text.
+- **The preferences dialog now shows the banner's full text** above its introduction
+  (`data-fancy-compliance="preferences-summary"`, styled by the existing
+  `classNames.body`), so nothing the short text leaves out is lost. **Consumer action:**
+  none.
+- **The bar's three actions sit in one row on a phone.** They go three across wherever
+  their row is at least 17rem (272px) wide, a container query on `banner-layout`, so at a
+  320px viewport each is about 91px wide and 44px tall; they stack only below that. On a
+  phone all three take tighter side padding (`max-sm:px-2`), and where the row is under
+  20rem the md button text size, so "Accept all" stays on one line. All three still share
+  one set of classes. `card` and `corner` keep their action layouts. **Consumer action:**
+  none, unless you styled `banner-actions` assuming a stacked phone layout.
+- Every action carries `break-words`, so a long translated label wraps inside its button.
+
+### Added
+
+- README: pairing `scroll-padding-bottom: var(--fancy-consent-banner-h, 0px)` with the
+  banner-height variable, so keyboard focus is not scrolled behind the banner, with what
+  was measured: in Chromium 151, tabbing 24 links on a long page left 11 (375x667) and 16
+  (320x568) of them behind the banner without it, and 0 with it. Firefox and WebKit were
+  not measured: the installed Playwright browser builds did not match the available
+  Playwright, and both failed at page creation.
+
+Unchanged: the `data-agent-off-limits="consent"` markers, `reserveSpace`,
+`--fancy-consent-banner-h` / `--fancy-consent-banner-top-h`, the theme tokens and RTL.
+
 ## [0.2.1] - 2026-11-07
 
 ### Fixed

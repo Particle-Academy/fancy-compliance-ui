@@ -94,9 +94,18 @@ const CORNER_POSITION: Record<ConsentBannerFloatingPosition, string> = {
 
 const LAYOUT = {
   bar: {
-    layout: "mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-end lg:justify-between",
+    // `@container`: the actions below go three across by the width they really
+    // have, not the viewport's, so an app's own padding cannot push them over.
+    layout: "@container mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-end lg:justify-between",
     content: "flex max-w-2xl flex-col gap-2 text-start",
-    actions: "grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3 lg:w-[30rem]",
+    // One row from 17rem (272px): at a 320px viewport each action is about
+    // 91px wide. Stacked only below that, where three would not fit.
+    actions: "grid shrink-0 grid-cols-1 gap-2 @min-[17rem]:grid-cols-3 lg:w-[30rem]",
+    // Applied to all three actions alike: tighter side padding on a phone so
+    // "Customise" fits a third of the row, and, where the row is under 20rem
+    // (a 320px phone), the md button text size so "Accept all" stays on one
+    // line instead of doubling the button's height. min-h-11 is untouched.
+    action: "max-sm:px-2 @max-[20rem]:text-sm",
     error: "mx-auto mt-3 max-w-5xl font-medium text-red-800 dark:text-red-200",
   },
   card: {
@@ -148,7 +157,7 @@ export function ConsentBanner(props: ConsentBannerProps) {
 
   const layout = LAYOUT[variant];
   const compact = variant === "corner";
-  const actionClass = merge(ACTION_CLASS, classNames.action);
+  const actionClass = merge(ACTION_CLASS, "action" in layout ? layout.action : undefined, classNames.action);
   const actionProps = {
     type: "button" as const,
     size: ACTION_SIZE,
@@ -177,7 +186,15 @@ export function ConsentBanner(props: ConsentBannerProps) {
             data-fancy-compliance="banner-body"
             className={merge(SOFT_TEXT_CLASS, classNames.body)}
           >
-            {t("fancy-compliance.banner.body")}
+            {/* Both render, on the server too; a media query shows one. The
+                hidden one is display:none, so it is not read out either. The
+                full text is also in the preferences dialog. */}
+            <span data-fancy-compliance="banner-body-short" className="sm:hidden">
+              {t("fancy-compliance.banner.body-short")}
+            </span>
+            <span data-fancy-compliance="banner-body-full" className="hidden sm:inline">
+              {t("fancy-compliance.banner.body")}
+            </span>
           </Text>
         </div>
         <div data-fancy-compliance="banner-actions" className={merge(layout.actions, classNames.actions)}>

@@ -47,10 +47,15 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
   `THEME_TOKENS`, and the defaults must stay AAA: `tests/styling.test.tsx` checks both.
 - **App classes merge last** through `merge` (react-fancy's `cn`, tailwind-merge): ours first,
   then `className`, then `classNames.<part>`.
-- `variant="bar"` with no new props keeps the 0.1.0 layout and `<section>` root; `card` and
+- `variant="bar"` with no new props keeps the 0.1.0 layout from `sm` up (0.3.0 changed the
+  phone layout only) and the `<section>` root; `card` and
   `corner` are a react-fancy `Card`. Positions use logical `start-*` / `end-*`, never `left` /
   `right`.
 - Targets `min-h-11`; `dir` on the banner and the dialog.
+- **The banner body is two texts, picked by CSS** (`sm:hidden` / `hidden sm:inline`), never by
+  JS width: `banner.body-short` below 640px, `banner.body` above it and always in the dialog
+  (`preferences-summary`). The bar's actions go three across by a container query on
+  `banner-layout` (`@min-[17rem]`). `tests/narrow.test.tsx` pins both (CC-fancy-0016).
 
 ## Tests
 

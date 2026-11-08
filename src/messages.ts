@@ -12,6 +12,10 @@ export const DEFAULT_MESSAGES: Readonly<ConsentMessages> = Object.freeze({
   "fancy-compliance.banner.title": "Your privacy choices",
   "fancy-compliance.banner.body":
     "We use cookies and similar technologies. The necessary ones keep the site working. With your permission we would also use others, which you can review in the settings. You can change your mind at any time.",
+  // Shown instead of the body below the sm breakpoint (640px), where the full
+  // text took 6 or 7 lines. The full text stays in the preferences dialog.
+  "fancy-compliance.banner.body-short":
+    "We use necessary cookies, and others only if you allow them. You can change your mind at any time.",
   "fancy-compliance.action.accept-all": "Accept all",
   "fancy-compliance.action.reject-all": "Reject all",
   "fancy-compliance.action.customise": "Customise",

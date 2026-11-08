@@ -20,7 +20,8 @@ import { cn } from "@particle-academy/react-fancy";
  */
 export const ACTION_SIZE = "lg" as const;
 
-export const ACTION_CLASS = "min-h-11 w-full justify-center whitespace-normal";
+// break-words: a long translated label wraps inside its button, never out of it.
+export const ACTION_CLASS = "min-h-11 w-full justify-center whitespace-normal break-words";
 
 const BG = "bg-[color:var(--fancy-surface,var(--color-white))] dark:bg-[color:var(--fancy-surface-dark,var(--color-zinc-900))]";
 
