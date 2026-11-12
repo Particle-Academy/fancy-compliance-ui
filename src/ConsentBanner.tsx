@@ -53,6 +53,15 @@ interface ConsentBannerCommonProps {
    * themselves.
    */
   reserveSpace?: boolean;
+  /**
+   * Rendered BEFORE the banner in document order, so a page's "Skip to
+   * content" link stays its first tab stop instead of Accept all (WCAG 2.4.1).
+   * Pass react-fancy's `<SkipLink />` (6.22.0 and later) or any link of your
+   * own. It renders whether or not the banner shows, so it can be the page's
+   * one skip link, and it sits outside the banner's agent fence: it is page
+   * navigation, not a consent control.
+   */
+  skipLink?: ReactNode;
 }
 
 export type ConsentBannerProps = ConsentBannerCommonProps &
@@ -136,6 +145,18 @@ const LAYOUT = {
  * accepting.
  */
 export function ConsentBanner(props: ConsentBannerProps) {
+  const { skipLink } = props;
+  const banner = <ConsentBannerRegion {...props} />;
+  if (skipLink == null) return banner;
+  return (
+    <>
+      {skipLink}
+      {banner}
+    </>
+  );
+}
+
+function ConsentBannerRegion(props: ConsentBannerProps) {
   const { className, classNames = {}, reserveSpace = false } = props;
   const variant: ConsentBannerVariant = props.variant ?? "bar";
   const consent = useConsentInternal();

@@ -10,6 +10,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`ConsentBanner skipLink`**: a `ReactNode` slot rendered before the banner in document
+  order, so a page's "Skip to content" link stays the first tab stop instead of Accept all
+  (WCAG 2.4.1). It renders whether or not the banner shows, so it can be the page's one skip
+  link, and it sits outside the banner's agent fence. Any link works; react-fancy's
+  `SkipLink` (6.22.0 and later) is made for it, and this package's react-fancy range is
+  unchanged because the slot does not import it. Without the prop the banner renders exactly
+  as before.
+
 ### Changed
 
 - **Releases need a lab-run certificate.** `publish.yml` gains a read-only

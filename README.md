@@ -309,6 +309,17 @@ one.
 
 - The banner is a labelled `role="region"`, **non-modal**: it never traps or takes focus.
   Put it early in the document so keyboard and screen-reader users reach it first.
+- **Keep your skip link first: `skipLink`.** Placed early, the banner's three buttons would
+  become the page's first tab stops, ahead of a "Skip to content" link (WCAG 2.4.1). Pass the
+  link to the banner and it renders BEFORE the banner in document order, whether or not the
+  banner is showing, so it can be the page's one skip link. It is any `ReactNode`, so this
+  package does not need a newer react-fancy for it; react-fancy's `SkipLink` (6.22.0 and
+  later) is made for it. It sits outside the banner's agent fence: it is page navigation, not
+  a consent control.
+
+  ```tsx
+  <ConsentBanner skipLink={<SkipLink />} />   {/* or <a href="#main">Skip to content</a> */}
+  ```
 - The dialog is modal: focus moves in, Tab and Shift+Tab stay inside, Escape closes, and
   focus returns to whatever opened it. After a decision from the banner, focus goes to the
   trigger. (The dialog manages focus itself: react-fancy 6.9.0's `Modal` does not when it

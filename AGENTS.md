@@ -52,6 +52,10 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
   `corner` are a react-fancy `Card`. Positions use logical `start-*` / `end-*`, never `left` /
   `right`.
 - Targets `min-h-11`; `dir` on the banner and the dialog.
+- **`skipLink` renders before the banner region, as a sibling, always** (also when the banner
+  is hidden), and outside `AGENT_OFF_LIMITS`. It is a `ReactNode`, so the package never imports
+  react-fancy's `SkipLink`. With no `skipLink` the output is the region alone, unchanged.
+  `tests/skip-link.test.tsx` checks it is the first focusable element in every variant.
 - **The banner body is two texts, picked by CSS** (`sm:hidden` / `hidden sm:inline`), never by
   JS width: `banner.body-short` below 640px, `banner.body` above it and always in the dialog
   (`preferences-summary`). The bar's actions go three across by a container query on
