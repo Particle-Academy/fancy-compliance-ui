@@ -92,6 +92,7 @@ check the page's route is in the `web` group, or add
 | `ConsentGate` | Renders children only while the category is allowed; optional `fallback` | `data-fancy-compliance-gate="<key>"` + `data-fancy-compliance-state` |
 | `ConsentScript` / `useConsentScript` | Loads a script once allowed | `script[data-fancy-compliance-script="<key>"]` |
 | `ConsentReloadNotice` | Offers a reload when a withdrawn script could not be stopped | `data-fancy-compliance="reload-notice"` |
+| `ConsentHistory` | A person's past decisions, read-only and controlled (see [Consent history](#consent-history)) | `data-fancy-compliance="history"`, rows `data-consent-history-entry="<id>"` |
 | `useConsent` | `allows(key)`, `needsConsent`, `openPreferences()`, and more | |
 
 Every action button carries `data-fancy-compliance-action` (`accept-all`, `reject-all`,
@@ -330,6 +331,54 @@ one.
   zinc-300 on zinc-900 in dark mode: above 10:1 either way, past AAA's 7:1.
 - `dir` goes on the banner and the portalled dialog; react-fancy 6.9.0 mirrors the rest.
 
+## Consent history
+
+`ConsentHistory` lists every decision, withdrawal and sign-in link the server recorded,
+newest first. It is **controlled**: it renders the `entries` you pass and calls
+`onLoadMore` when the person asks for older ones. It never fetches. It does not need a
+`ConsentProvider`.
+
+The data comes from `particle-academy/fancy-compliance` 0.2 or later,
+`GET /fancy-compliance/history`, which answers 404 until the host registers a subject
+resolver. The response is a `ConsentHistoryPage`: `{ entries, nextBefore }`.
+
+```tsx
+import { ConsentHistory, type ConsentHistoryEntry } from "@particle-academy/fancy-compliance-ui";
+
+const [entries, setEntries] = useState<ConsentHistoryEntry[]>(firstPage.entries);
+const [before, setBefore] = useState(firstPage.nextBefore);
+const [loading, setLoading] = useState(false);
+
+<ConsentHistory
+  entries={entries}
+  categories={snapshot.categories}
+  hasMore={before !== null}
+  loading={loading}
+  onLoadMore={async () => {
+    setLoading(true);
+    const page = await (await fetch(`/fancy-compliance/history?before=${before}`, { headers: { Accept: "application/json" } })).json();
+    setEntries((e) => [...e, ...page.entries]);
+    setBefore(page.nextBefore);
+    setLoading(false);
+  }}
+/>
+```
+
+- Props: `entries`, `categories` (labels; unknown keys fall back to English, then the key),
+  `messages`, `hasMore`, `loading` (disables load-more, sets `aria-busy`), `error` (an
+  alert), `onLoadMore`, `locale` and `timeZone` for the default time format (`en` and `UTC`
+  by default, so server and client render the same text), `formatDate`, `headingLevel`,
+  `dir`, `className`, `classNames`.
+- Handles: each row is `data-consent-history-entry="<id>"` with
+  `data-consent-history-action`, `-policy` and `-linked`; each category is
+  `data-consent-category="<key>"` inside `history-granted` / `history-refused`; the button is
+  `data-fancy-compliance-action="history-load-more"`.
+- New message keys: `fancy-compliance.history.*` (title, empty, actions, sources, granted,
+  refused, none, policy, load-more, error).
+
+A history shows what was recorded; it is not, by itself, evidence that any law is met. Have
+it reviewed by a lawyer before relying on it.
+
 ## Agents (Human+)
 
 **An agent may read consent state. It must never grant, record or withdraw consent on a
@@ -363,6 +412,9 @@ import { AGENT_OFF_LIMITS } from "@particle-academy/fancy-compliance-ui";
 
 `ConsentReloadNotice` is not marked on its own: its one action reloads the page, which
 records nothing. Inside the dialog it is fenced with the rest.
+
+`ConsentHistory` is deliberately **not** fenced: agents may read a person's consent
+history. Its only control loads older entries, and nothing in it records consent.
 
 ## License
 

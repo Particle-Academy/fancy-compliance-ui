@@ -73,6 +73,35 @@ export type ConsentActivity =
   | { type: "consent.preferences.opened"; actor: "human" }
   | { type: "consent.preferences.closed"; actor: "human" };
 
+/** How a ledger row came about. `link` is a guest decision carried over at sign-in. */
+export type ConsentHistoryAction = "decision" | "withdrawal" | "link";
+
+/**
+ * One consent ledger row, as `particle-academy/fancy-compliance` serves it
+ * (`GET /fancy-compliance/history`, `ConsentHistoryEntry::toArray()`). It never
+ * carries the subject key or a guest hash.
+ */
+export interface ConsentHistoryEntry {
+  /** The ledger row id: stable, and the `before` cursor for older pages. */
+  id: number;
+  action: ConsentHistoryAction | (string & {});
+  granted: string[];
+  refused: string[];
+  policyVersion: string;
+  /** `banner`, `preferences`, `api` or `login`. */
+  source: string;
+  /** ISO 8601, UTC. */
+  at: string;
+  /** True for a decision carried over from a guest at sign-in. */
+  linked: boolean;
+}
+
+/** A page of history: newest first; pass `nextBefore` as `before` for the next, older page. */
+export interface ConsentHistoryPage {
+  entries: ConsentHistoryEntry[];
+  nextBefore: number | null;
+}
+
 export type ConsentMessages = Record<string, string>;
 
 export type Direction = "ltr" | "rtl";

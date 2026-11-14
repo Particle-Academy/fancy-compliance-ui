@@ -17,6 +17,8 @@ export { ConsentPreferencesTrigger } from "./ConsentPreferencesTrigger";
 export type { ConsentPreferencesTriggerClassNames, ConsentPreferencesTriggerProps } from "./ConsentPreferencesTrigger";
 export { ConsentGate } from "./ConsentGate";
 export type { ConsentGateProps } from "./ConsentGate";
+export { ConsentHistory } from "./ConsentHistory";
+export type { ConsentHistoryClassNames, ConsentHistoryProps } from "./ConsentHistory";
 export { ConsentReloadNotice } from "./ConsentReloadNotice";
 export type { ConsentReloadNoticeClassNames, ConsentReloadNoticeProps } from "./ConsentReloadNotice";
 export { ConsentScript, useConsentScript } from "./script";
@@ -29,6 +31,9 @@ export type {
   ConsentActivity,
   ConsentCategory,
   ConsentDecision,
+  ConsentHistoryAction,
+  ConsentHistoryEntry,
+  ConsentHistoryPage,
   ConsentMessages,
   ConsentPurpose,
   ConsentRecordView,

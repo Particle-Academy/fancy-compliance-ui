@@ -21,6 +21,10 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
 - `src/client.ts`: fetch client for the Laravel routes, `useConsentController`, `readConsentProps`.
   `useConsentController` fails soft on a missing `initial` (no banner, one dev warning).
 - `src/messages.ts`: `DEFAULT_MESSAGES` and the lookup order.
+- `src/ConsentHistory.tsx`: controlled, read-only list of `ConsentHistoryEntry` (mirrors
+  fancy-compliance's `ConsentHistoryEntry::toArray()`). Needs no provider, never fetches.
+  Deliberately OUTSIDE `AGENT_OFF_LIMITS`: agents may read history, and it records nothing.
+  Default time format is `en` / `UTC` so SSR and hydration agree. `tests/history.test.tsx`.
 
 ## Invariants a change must keep
 

@@ -10,6 +10,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+Council change **CC-fancy-0038**, phase 1 (consent history), approved by the owner. A
+history shows what was recorded; it promises no compliance with any law. Have it reviewed by
+a lawyer before relying on it.
+
+### Added
+
+- **`ConsentHistory`**: a person's consent ledger rows, newest first, as
+  `particle-academy/fancy-compliance` 0.2's `GET /fancy-compliance/history` serves them.
+  Controlled and read-only: it renders `entries`, calls `onLoadMore` when `hasMore`, and
+  never fetches. `loading` disables load-more and sets `aria-busy`; `error` shows an alert.
+  Labels come from `categories`, then the English defaults, then the key. Times default to
+  `en` / `UTC` so server and client render the same text; `locale`, `timeZone` and
+  `formatDate` change that. Built from react-fancy `Heading`, `Text` and `Button`, with the
+  AAA text classes, `dir`, and `className` / `classNames` merged last.
+  Handles: `data-fancy-compliance="history"`, `data-consent-history-entry="<id>"` with
+  `-action`, `-policy` and `-linked`, `data-consent-category`, and
+  `data-fancy-compliance-action="history-load-more"`.
+  **Not inside the consent fence on purpose:** agents may read history; it records nothing.
+- Types `ConsentHistoryEntry`, `ConsentHistoryPage`, `ConsentHistoryAction`.
+- Message keys `fancy-compliance.history.*`, with English defaults.
+
+**Consumer action:** none. Nothing existing changed; the peer range is unchanged.
+
 ## [0.4.0] - 2026-11-12
 
 ### Added
