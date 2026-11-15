@@ -25,6 +25,18 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
   fancy-compliance's `ConsentHistoryEntry::toArray()`). Needs no provider, never fetches.
   Deliberately OUTSIDE `AGENT_OFF_LIMITS`: agents may read history, and it records nothing.
   Default time format is `en` / `UTC` so SSR and hydration agree. `tests/history.test.tsx`.
+- Data rights (CC-fancy-0038 phases 3 and 4). The contract is fancy-compliance's
+  `docs/data-rights-protocol.md` (version 1); `src/types.ts` mirrors it (`DataExportView`,
+  `DataExportList`, `DataErasureView`, ...).
+  - `src/DataExportPanel.tsx`: controlled list of exports + one request button per format.
+    `tests/data-export.test.tsx`.
+  - `src/AccountDeletionPanel.tsx`: controlled erasure view, staged request (`pendingMode`),
+    countdown from the `now` prop, retained-with-reason list after execution.
+    `tests/account-deletion.test.tsx`.
+  - `src/client.ts`: `createDataRightsClient` (shares `requestJson` with `createConsentClient`;
+    `ConsentRequestError.detail` carries the rest of an error body). No download call.
+  - `DATA_RIGHTS_OFF_LIMITS` in `src/agents.ts` (`data-agent-off-limits="legal"`).
+  - `fill()` / `codeKey()` in `src/messages.ts`: `{name}` placeholders and code-to-key lookup.
 
 ## Invariants a change must keep
 
@@ -64,6 +76,18 @@ The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
   JS width: `banner.body-short` below 640px, `banner.body` above it and always in the dialog
   (`preferences-summary`). The bar's actions go three across by a container query on
   `banner-layout` (`@min-[17rem]`). `tests/narrow.test.tsx` pins both (CC-fancy-0016).
+- **Data-rights controls are fenced, data-rights status is not.** Every control that requests,
+  confirms, cancels or downloads (export request buttons, the download link, erasure
+  request / confirm / keep / cancel) sits inside `DATA_RIGHTS_OFF_LIMITS`; the export rows and
+  the erasure status sit outside it. `tests/agent-off-limits.test.tsx` checks both.
+- **A download link renders only for a `ready` export**, whatever `download` says. Downloads
+  are links the signed-in person follows; the client never fetches an export.
+- **The erasure request is a staged write by default**: under `pendingMode` only confirm
+  calls `onRequest`.
+- **Data-rights panels never read the clock**: the countdown comes from the `now` prop, so SSR
+  and hydration agree.
+- **No default text promises compliance** with any law (`tests/data-export.test.tsx` scans the
+  export and erasure messages).
 
 ## Tests
 

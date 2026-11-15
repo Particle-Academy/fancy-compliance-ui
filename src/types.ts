@@ -105,3 +105,88 @@ export interface ConsentHistoryPage {
 export type ConsentMessages = Record<string, string>;
 
 export type Direction = "ltr" | "rtl";
+
+/*
+ * Data rights (CC-fancy-0038 phases 3 and 4). These mirror
+ * particle-academy/fancy-compliance's docs/data-rights-protocol.md, version 1.
+ * Any backend serving that protocol can drive the panels.
+ */
+
+export type DataExportFormat = "json" | "zip";
+
+export type DataExportStatus = "pending" | "ready" | "failed" | "downloaded" | "expired";
+
+/** One export request, as `GET /fancy-compliance/exports/{id}` serves it. */
+export interface DataExportView {
+  /** A ULID: stable, and the handle `data-data-export`. */
+  id: string;
+  format: DataExportFormat | (string & {});
+  status: DataExportStatus | (string & {});
+  /** ISO 8601, UTC. */
+  requestedAt: string;
+  readyAt: string | null;
+  expiresAt: string | null;
+  bytes: number | null;
+  /** `too_large`, `too_many_files`, `registrant_failed`, `zip_unavailable` or `build_failed` when `failed`. */
+  error: string | null;
+  /** Only while `ready`. The URL carries a single-use token and still needs the person signed in. */
+  download: { url: string } | null;
+}
+
+export interface DataExportLimits {
+  perDay: number;
+  remainingToday: number;
+}
+
+/** `GET /fancy-compliance/exports`. */
+export interface DataExportList {
+  exports: DataExportView[];
+  /** What this host can build: `zip` only when the server has ext-zip and allows it. */
+  formats: DataExportFormat[];
+  limits: DataExportLimits;
+}
+
+export type DataErasureStatus = "pending" | "cancelled" | "executing" | "executed" | "partially_executed";
+
+/** Rows a registrant kept, and why. `rekeyed` true: kept under a pseudonym; false: kept unchanged. */
+export interface DataErasureRetained {
+  table: string;
+  rows: number;
+  reason: string;
+  rekeyed: boolean;
+}
+
+/** What one package (a registrant) did, or has yet to do, for an erasure. */
+export interface DataErasureRegistrantView {
+  key: string;
+  status: "waiting" | "done" | "failed" | (string & {});
+  /** Rows deleted, per table. */
+  deleted: Record<string, number>;
+  /** Rows anonymised in place, per table. */
+  anonymised: Record<string, number>;
+  retained: DataErasureRetained[];
+}
+
+/** One erasure request, as `GET /fancy-compliance/erasure/{id}` serves it. */
+export interface DataErasureView {
+  id: string;
+  status: DataErasureStatus | (string & {});
+  requestedAt: string;
+  /** When the grace period ends and the request executes. */
+  dueAt: string;
+  cancelledAt: string | null;
+  executedAt: string | null;
+  registrants: DataErasureRegistrantView[];
+}
+
+/** `GET /fancy-compliance/erasure`: the latest request, or null, and the host's grace period. */
+export interface DataErasureState {
+  erasure: DataErasureView | null;
+  graceDays: number;
+}
+
+/** Someone other than the caller, named for a staff path the host's authoriser allows. */
+export interface DataSubjectRef {
+  type: string;
+  id: string;
+}

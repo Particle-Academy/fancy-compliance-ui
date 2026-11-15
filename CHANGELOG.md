@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-Council change **CC-fancy-0038**, phase 1 (consent history), approved by the owner. A
+Council change **CC-fancy-0038**, phases 1, 3 and 4 (consent history, data export, account
+deletion), approved by the owner. A
 history shows what was recorded; it promises no compliance with any law. Have it reviewed by
 a lawyer before relying on it.
 
@@ -30,6 +31,42 @@ a lawyer before relying on it.
   **Not inside the consent fence on purpose:** agents may read history; it records nothing.
 - Types `ConsentHistoryEntry`, `ConsentHistoryPage`, `ConsentHistoryAction`.
 - Message keys `fancy-compliance.history.*`, with English defaults.
+- **`DataExportPanel`** (phase 3): a person's data exports as fancy-compliance's
+  `GET /fancy-compliance/exports` serves them (`docs/data-rights-protocol.md`, version 1).
+  Controlled: one request button per allowed `format` calling `onRequest(format)`, disabled
+  while `requesting`, while an export is `pending` and when `limits.remainingToday` is 0; each
+  export's status, request time, failure reason, and for a `ready` export only, its size,
+  expiry and a download link (react-fancy `Button` with `href` + `download`). `error` takes the
+  server's code (`reauth_required`, `rate_limited`, `export_in_progress`, ...). Handles:
+  `data-fancy-compliance="data-export"`, rows `data-data-export="<id>"` with `-status` and
+  `-format`, actions `export-request-<format>` and `export-download`.
+- **`AccountDeletionPanel`** (phase 4): a person's erasure request. A staged write by default
+  (`pendingMode`): the first click shows a confirm step, only confirm calls `onRequest`;
+  `confirming` / `onConfirmingChange` control the step. Pending shows the due date, the days
+  left from the `now` prop, and cancel (`onCancel(id)`); a grace period of 0 says deletion is
+  immediate; after execution each part's status and every table kept with its rows and reason
+  (`rekeyed` or unchanged). `blockedReason` shows the host's text for `erasure_blocked`.
+  Handles: `data-fancy-compliance="account-deletion"` with `data-erasure-status` (`none`
+  without a request) and `data-erasure-id`, actions `erasure-request|confirm|keep|cancel`,
+  `data-erasure-registrant` (+ `-status`), `data-erasure-retained="<table>"`.
+- **`createDataRightsClient({ routes?, fetch? })`**: `listExports`, `requestExport(format)`,
+  `getExport(id)`, `getErasure()`, `requestErasure()`, `getErasureRequest(id)`,
+  `cancelErasure(id)`, each with an optional target for a staff path the host authorises.
+  Same CSRF headers as `createConsentClient`. There is no download call on purpose: a
+  download is a link the signed-in person follows.
+- **`DATA_RIGHTS_OFF_LIMITS`** (`data-agent-off-limits="legal"`). Every data-rights control
+  (export request, download, erasure request, confirm, keep, cancel) sits inside it; export
+  rows and erasure status stay outside, so agents may read status and never act on a
+  person's data rights.
+- `ConsentRequestError.detail`: the rest of an error body (`reason`, `retryAfter`, the
+  `export` or `erasure` of a 409). An optional third constructor argument.
+- Types `DataExportView`, `DataExportStatus`, `DataExportFormat`, `DataExportLimits`,
+  `DataExportList`, `DataErasureView`, `DataErasureStatus`, `DataErasureRegistrantView`,
+  `DataErasureRetained`, `DataErasureState`, `DataSubjectRef`; message keys
+  `fancy-compliance.export.*` and `fancy-compliance.erasure.*`.
+
+These panels promise no compliance with any law either. Have it reviewed by a lawyer before
+relying on it.
 
 **Consumer action:** none. Nothing existing changed; the peer range is unchanged.
 

@@ -1,10 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ConsentDecision, ConsentRoutes, ConsentSnapshot, ConsentWithdrawal } from "./types";
+import type {
+  ConsentDecision,
+  ConsentRoutes,
+  ConsentSnapshot,
+  ConsentWithdrawal,
+  DataErasureState,
+  DataErasureView,
+  DataExportFormat,
+  DataExportList,
+  DataExportView,
+  DataSubjectRef,
+} from "./types";
 
 export class ConsentRequestError extends Error {
   constructor(
     public readonly code: string,
     public readonly status: number,
+    /** The rest of the error body: `reason` for `erasure_blocked`, `export` / `erasure` for a 409, `retryAfter` for a 429. */
+    public readonly detail: Record<string, unknown> | null = null,
   ) {
     super(`fancy-compliance: ${code} (${status})`);
     this.name = "ConsentRequestError";
@@ -40,45 +53,116 @@ function readCookie(name: string): string | null {
 }
 
 /**
- * Talks to `particle-academy/fancy-compliance`'s routes. Sends Laravel's
- * `X-XSRF-TOKEN` from the `XSRF-TOKEN` cookie (or `X-CSRF-TOKEN` from
- * `<meta name="csrf-token">`), so the host's CSRF protection applies.
+ * One JSON request to a fancy-compliance route, with Laravel's `X-XSRF-TOKEN`
+ * from the `XSRF-TOKEN` cookie (or `X-CSRF-TOKEN` from
+ * `<meta name="csrf-token">`), so the host's CSRF protection applies. A non-2xx
+ * answer throws {@link ConsentRequestError} with the server's code.
  */
-export function createConsentClient({ routes, fetch: fetcher }: ConsentClientOptions): ConsentClient {
-  const send = async (method: "GET" | "POST", url: string, body?: unknown): Promise<ConsentSnapshot> => {
-    const headers: Record<string, string> = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
-    if (body !== undefined) headers["Content-Type"] = "application/json";
-    const xsrf = readCookie("XSRF-TOKEN");
-    if (xsrf) {
-      headers["X-XSRF-TOKEN"] = xsrf;
-    } else if (typeof document !== "undefined") {
-      const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
-      if (meta) headers["X-CSRF-TOKEN"] = meta;
+async function requestJson<T>(fetcher: typeof fetch | undefined, method: "GET" | "POST", url: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const xsrf = readCookie("XSRF-TOKEN");
+  if (xsrf) {
+    headers["X-XSRF-TOKEN"] = xsrf;
+  } else if (typeof document !== "undefined") {
+    const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+    if (meta) headers["X-CSRF-TOKEN"] = meta;
+  }
+  const response = await (fetcher ?? globalThis.fetch)(url, {
+    method,
+    credentials: "same-origin",
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let data: unknown = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    const record = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+    const code = record && typeof record.error === "string" ? record.error : "request_failed";
+    let detail: Record<string, unknown> | null = null;
+    if (record) {
+      const { error: _omit, ...rest } = record;
+      void _omit;
+      detail = Object.keys(rest).length > 0 ? rest : null;
     }
-    const response = await (fetcher ?? globalThis.fetch)(url, {
-      method,
-      credentials: "same-origin",
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    let data: unknown = null;
-    try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
-    if (!response.ok) {
-      const code = data && typeof data === "object" && typeof (data as { error?: unknown }).error === "string" ? (data as { error: string }).error : "request_failed";
-      throw new ConsentRequestError(code, response.status);
-    }
+    throw new ConsentRequestError(code, response.status, detail);
+  }
 
-    return data as ConsentSnapshot;
+  return data as T;
+}
+
+/** Talks to `particle-academy/fancy-compliance`'s consent routes. */
+export function createConsentClient({ routes, fetch: fetcher }: ConsentClientOptions): ConsentClient {
+  return {
+    decide: (decision) => requestJson<ConsentSnapshot>(fetcher, "POST", routes.record, decision),
+    withdraw: (withdrawal) => requestJson<ConsentSnapshot>(fetcher, "POST", routes.withdraw, withdrawal),
+    refresh: () => requestJson<ConsentSnapshot>(fetcher, "GET", routes.show),
   };
+}
+
+export interface DataRightsRoutes {
+  /** Default `/fancy-compliance/exports`. */
+  exports: string;
+  /** Default `/fancy-compliance/erasure`. */
+  erasure: string;
+}
+
+export interface DataRightsClientOptions {
+  routes?: DataRightsRoutes;
+  fetch?: typeof fetch;
+}
+
+/**
+ * fancy-compliance's data-rights routes (docs/data-rights-protocol.md,
+ * version 1). There is deliberately no download call: a download is the
+ * export's `download.url`, followed as a link by the signed-in person.
+ */
+export interface DataRightsClient {
+  listExports: (target?: DataSubjectRef) => Promise<DataExportList>;
+  requestExport: (format: DataExportFormat, target?: DataSubjectRef) => Promise<DataExportView>;
+  getExport: (id: string, target?: DataSubjectRef) => Promise<DataExportView>;
+  getErasure: (target?: DataSubjectRef) => Promise<DataErasureState>;
+  requestErasure: (target?: DataSubjectRef) => Promise<DataErasureView>;
+  getErasureRequest: (id: string, target?: DataSubjectRef) => Promise<DataErasureView>;
+  cancelErasure: (id: string, target?: DataSubjectRef) => Promise<DataErasureView>;
+}
+
+export const DEFAULT_DATA_RIGHTS_ROUTES: Readonly<DataRightsRoutes> = Object.freeze({
+  exports: "/fancy-compliance/exports",
+  erasure: "/fancy-compliance/erasure",
+});
+
+function targetBody(target: DataSubjectRef | undefined): Record<string, string> {
+  return target ? { subject_type: target.type, subject_id: target.id } : {};
+}
+
+function withTarget(url: string, target: DataSubjectRef | undefined): string {
+  if (!target) return url;
+  const query = new URLSearchParams(targetBody(target)).toString();
+
+  return `${url}${url.includes("?") ? "&" : "?"}${query}`;
+}
+
+export function createDataRightsClient({ routes = DEFAULT_DATA_RIGHTS_ROUTES, fetch: fetcher }: DataRightsClientOptions = {}): DataRightsClient {
+  const exportUrl = (id: string) => `${routes.exports}/${encodeURIComponent(id)}`;
+  const erasureUrl = (id: string) => `${routes.erasure}/${encodeURIComponent(id)}`;
 
   return {
-    decide: (decision) => send("POST", routes.record, decision),
-    withdraw: (withdrawal) => send("POST", routes.withdraw, withdrawal),
-    refresh: () => send("GET", routes.show),
+    listExports: (target) => requestJson<DataExportList>(fetcher, "GET", withTarget(routes.exports, target)),
+    requestExport: async (format, target) =>
+      (await requestJson<{ export: DataExportView }>(fetcher, "POST", routes.exports, { format, ...targetBody(target) })).export,
+    getExport: async (id, target) => (await requestJson<{ export: DataExportView }>(fetcher, "GET", withTarget(exportUrl(id), target))).export,
+    getErasure: (target) => requestJson<DataErasureState>(fetcher, "GET", withTarget(routes.erasure, target)),
+    requestErasure: async (target) =>
+      (await requestJson<{ erasure: DataErasureView }>(fetcher, "POST", routes.erasure, target ? targetBody(target) : undefined)).erasure,
+    getErasureRequest: async (id, target) =>
+      (await requestJson<{ erasure: DataErasureView }>(fetcher, "GET", withTarget(erasureUrl(id), target))).erasure,
+    cancelErasure: async (id, target) =>
+      (await requestJson<{ erasure: DataErasureView }>(fetcher, "POST", `${erasureUrl(id)}/cancel`, target ? targetBody(target) : undefined)).erasure,
   };
 }
 

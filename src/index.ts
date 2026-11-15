@@ -43,3 +43,23 @@ export type {
   ConsentWithdrawal,
   Direction,
 } from "./types";
+export { DataExportPanel } from "./DataExportPanel";
+export type { DataExportPanelClassNames, DataExportPanelProps } from "./DataExportPanel";
+export { AccountDeletionPanel } from "./AccountDeletionPanel";
+export type { AccountDeletionPanelClassNames, AccountDeletionPanelProps } from "./AccountDeletionPanel";
+export { createDataRightsClient, DEFAULT_DATA_RIGHTS_ROUTES } from "./client";
+export type { DataRightsClient, DataRightsClientOptions, DataRightsRoutes } from "./client";
+export { DATA_RIGHTS_OFF_LIMITS } from "./agents";
+export type {
+  DataErasureRegistrantView,
+  DataErasureRetained,
+  DataErasureState,
+  DataErasureStatus,
+  DataErasureView,
+  DataExportFormat,
+  DataExportLimits,
+  DataExportList,
+  DataExportStatus,
+  DataExportView,
+  DataSubjectRef,
+} from "./types";

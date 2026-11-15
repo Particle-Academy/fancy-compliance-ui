@@ -93,6 +93,8 @@ check the page's route is in the `web` group, or add
 | `ConsentScript` / `useConsentScript` | Loads a script once allowed | `script[data-fancy-compliance-script="<key>"]` |
 | `ConsentReloadNotice` | Offers a reload when a withdrawn script could not be stopped | `data-fancy-compliance="reload-notice"` |
 | `ConsentHistory` | A person's past decisions, read-only and controlled (see [Consent history](#consent-history)) | `data-fancy-compliance="history"`, rows `data-consent-history-entry="<id>"` |
+| `DataExportPanel` | Request a copy of one's data, follow it, download it (see [Data export](#data-export)) | `data-fancy-compliance="data-export"`, rows `data-data-export="<id>"` |
+| `AccountDeletionPanel` | Request, cancel and follow an account deletion (see [Account deletion](#account-deletion)) | `data-fancy-compliance="account-deletion"` + `data-erasure-status` |
 | `useConsent` | `allows(key)`, `needsConsent`, `openPreferences()`, and more | |
 
 Every action button carries `data-fancy-compliance-action` (`accept-all`, `reject-all`,
@@ -379,6 +381,90 @@ const [loading, setLoading] = useState(false);
 A history shows what was recorded; it is not, by itself, evidence that any law is met. Have
 it reviewed by a lawyer before relying on it.
 
+## Data export
+
+`DataExportPanel` lets a person ask for a copy of the data a site holds about them, follow
+it, and download it. It is **controlled**: it renders the `exports` you pass and calls
+`onRequest(format)`; it never fetches. The data comes from `particle-academy/fancy-compliance`
+0.2 or later (`GET /fancy-compliance/exports`, specified in that package's
+`docs/data-rights-protocol.md`), and `createDataRightsClient()` talks to it.
+
+```tsx
+import { ConsentRequestError, createDataRightsClient, DataExportPanel, type DataExportList } from "@particle-academy/fancy-compliance-ui";
+
+const client = createDataRightsClient(); // or { routes: { exports, erasure } }
+const [list, setList] = useState<DataExportList>(initialList);
+const [error, setError] = useState<string | null>(null);
+
+<DataExportPanel
+  exports={list.exports}
+  formats={list.formats}
+  limits={list.limits}
+  error={error}
+  onRequest={async (format) => {
+    try {
+      await client.requestExport(format);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof ConsentRequestError ? e.code : "generic");
+    }
+    setList(await client.listExports());
+  }}
+/>
+```
+
+- One request button per format in `formats` (JSON only by default). They are disabled
+  while `requesting`, while an export is still `pending`, and when `limits.remainingToday`
+  is 0.
+- A **download is a plain link** to the export's `download.url`, shown only while the
+  export is `ready`. The server honours it only for the signed-in person, and its token
+  works once; reading the list again issues a fresh one. There is no link that works without
+  signing in, and the client has no download call.
+- `error` takes the server's code: `reauth_required` (the host wants a fresh sign-in, the
+  default), `rate_limited`, `export_in_progress`, or `true` for a generic message.
+- Handles: rows `data-data-export="<id>"` with `data-data-export-status` and
+  `data-data-export-format`; actions `export-request-json`, `export-request-zip` and
+  `export-download`; parts `data-export-status`, `-failure`, `-size`, `-remaining`, `-error`.
+- Message keys: `fancy-compliance.export.*`.
+
+## Account deletion
+
+`AccountDeletionPanel` lets a person ask for their account to be deleted, see the grace
+period count down, cancel it, and afterwards see what the site kept and why. Controlled:
+it renders `erasure` (the server's `GET /fancy-compliance/erasure`) and calls `onRequest()`
+and `onCancel(id)`.
+
+```tsx
+<AccountDeletionPanel
+  erasure={state.erasure}
+  graceDays={state.graceDays}
+  now={serverNow}
+  onRequest={async () => setState({ ...state, erasure: await client.requestErasure() })}
+  onCancel={async (id) => setState({ ...state, erasure: await client.cancelErasure(id) })}
+/>
+```
+
+- **A staged write.** With `pendingMode` (on by default) the first click shows a confirm
+  step, and only "Yes, delete my account" calls `onRequest`. `pendingMode={false}` makes it
+  one click. `confirming` / `onConfirmingChange` control the step if you want to.
+- While `pending`: the due date, the days left (pass `now`, an ISO time from the server, so
+  server and client render the same text; without it only the date shows) and a cancel.
+  A grace period of 0 says deletion is immediate.
+- After execution: each part's status, and every table kept with its row count and reason.
+  `rekeyed` rows are kept under a pseudonym; the rest are kept unchanged (for example a
+  hash-chained audit log). `partially_executed` says part of the data is not removed yet.
+- `error` takes the server's code (`reauth_required`, `rate_limited`, `erasure_pending`,
+  `erasure_blocked` with `blockedReason`, `not_cancellable`, `erasure_not_configured`).
+- Handles: `data-erasure-status` (`none` without a request) and `data-erasure-id` on the
+  root; actions `erasure-request`, `erasure-confirm`, `erasure-keep`, `erasure-cancel`;
+  `data-erasure-registrant` (+ `-status`), `data-erasure-retained="<table>"` (+
+  `data-erasure-rekeyed`).
+- Message keys: `fancy-compliance.erasure.*`.
+
+These panels are mechanisms that can support a site's obligations, not a promise that it
+meets them: that depends on the jurisdiction, the data and the site's processes. Have it
+reviewed by a lawyer before relying on it.
+
 ## Agents (Human+)
 
 **An agent may read consent state. It must never grant, record or withdraw consent on a
@@ -415,6 +501,12 @@ records nothing. Inside the dialog it is fenced with the rest.
 
 `ConsentHistory` is deliberately **not** fenced: agents may read a person's consent
 history. Its only control loads older entries, and nothing in it records consent.
+
+**Data rights are fenced the same way, with `data-agent-off-limits="legal"`**
+(`DATA_RIGHTS_OFF_LIMITS`). In `DataExportPanel` the request buttons and the download link
+sit inside it; in `AccountDeletionPanel` the request, the confirm step and cancel do. An
+agent may read export and erasure status (those rows are outside the fence); it may never
+ask for, confirm, cancel or download anything on a person's behalf.
 
 ## License
 

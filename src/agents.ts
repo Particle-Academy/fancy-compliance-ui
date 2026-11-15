@@ -13,3 +13,12 @@
  * replace this.
  */
 export const AGENT_OFF_LIMITS = { "data-agent-off-limits": "consent" } as const;
+
+/**
+ * The same fence for data-rights controls: requesting, confirming or cancelling
+ * an erasure, and requesting or downloading an export. Agents may READ export
+ * and erasure status (those rows sit outside it); acting on a person's data
+ * rights is the person's own act. `legal` is one of the words
+ * agent-integrations reports for a fenced area; presence alone fences.
+ */
+export const DATA_RIGHTS_OFF_LIMITS = { "data-agent-off-limits": "legal" } as const;
