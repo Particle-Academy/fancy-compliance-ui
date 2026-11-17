@@ -17,6 +17,13 @@ and works with any backend that serves the same JSON.
 Peers: `@particle-academy/react-fancy >=6.9.0 <7.0.0`, React 19. No runtime
 dependencies. Inertia is not required.
 
+<!-- fancy-agents-note:start -->
+> **For agents.** Every Fancy package, this one included, is listed on the
+> Fancy MCP catalog server at `https://ui.particle.academy/mcp` (streamable HTTP, no API key;
+> MCP id `fancy-ui`), with install commands and docs. How an agent installs
+> and uses this package is in [AGENTS.md](https://github.com/Particle-Academy/fancy-compliance-ui/blob/main/AGENTS.md).
+<!-- fancy-agents-note:end -->
+
 ## Install
 
 ```bash
@@ -467,46 +474,12 @@ reviewed by a lawyer before relying on it.
 
 ## Agents (Human+)
 
-**An agent may read consent state. It must never grant, record or withdraw consent on a
-person's behalf.** Consent is the person's own act; one an agent gave for them is not
-consent. `useConsent()` exposes `decide` and `withdraw` only so a host can build its own
-consent UI for the person to use. If a bridge is ever added for this surface, it is
-read-only: it may report `allows`, the categories and the current decision, and nothing
-else. `onActivity` events always say `actor: "human"`.
-
-**The rule is enforced in the markup, not left to each host.** The banner (every variant:
-`bar`, `card`, `corner`), the preferences dialog and the preferences trigger each carry
-`data-agent-off-limits="consent"` on their root. That is the kit's fence for agents:
-`@particle-academy/agent-integrations` 0.58.0 or later refuses every agent action whose
-target resolves inside such an element (click, field set, submit, focus, scroll, and a label
-or button outside that would activate a control inside), refuses it before a `pendingMode`
-confirm can stage it, and describes the area to the agent only as "consent region" or
-"consent dialog", with no labels or values. A person approving an agent's click on
-"Accept all" would still be the agent's act, which is why a staged confirm is not enough.
-The full marker spec is in agent-integrations' README, under "Off-limits areas".
-
-This package does not import agent-integrations: the attribute is the whole contract, so any
-agent tool that honours it gets the rule. The `data-fancy-compliance*` handles are unchanged.
-If you build your own consent control from `useConsent()`, or put one in a `ConsentGate`
-`fallback`, spread the exported `AGENT_OFF_LIMITS` onto its root:
-
-```tsx
-import { AGENT_OFF_LIMITS } from "@particle-academy/fancy-compliance-ui";
-
-<div {...AGENT_OFF_LIMITS}>{/* your consent switch */}</div>
-```
-
-`ConsentReloadNotice` is not marked on its own: its one action reloads the page, which
-records nothing. Inside the dialog it is fenced with the rest.
-
-`ConsentHistory` is deliberately **not** fenced: agents may read a person's consent
-history. Its only control loads older entries, and nothing in it records consent.
-
-**Data rights are fenced the same way, with `data-agent-off-limits="legal"`**
-(`DATA_RIGHTS_OFF_LIMITS`). In `DataExportPanel` the request buttons and the download link
-sit inside it; in `AccountDeletionPanel` the request, the confirm step and cancel do. An
-agent may read export and erasure status (those rows are outside the fence); it may never
-ask for, confirm, cancel or download anything on a person's behalf.
+An agent may read consent state but never grant, record or withdraw consent, and it may
+never request, confirm, cancel or download a data-rights action on a person's behalf. The
+consent controls carry `data-agent-off-limits="consent"` and the data-rights controls
+`data-agent-off-limits="legal"`, which `@particle-academy/agent-integrations` 0.58.0 or
+later refuses to act inside. A custom consent control built on `useConsent()` spreads the
+exported `AGENT_OFF_LIMITS` onto its root. The details are in [AGENTS.md](./AGENTS.md).
 
 ## License
 

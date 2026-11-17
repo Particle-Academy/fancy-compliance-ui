@@ -1,95 +1,107 @@
-# fancy-compliance-ui code map
+# Using @particle-academy/fancy-compliance-ui — guide for agents
 
-React 19 consent UI built only from `@particle-academy/react-fancy` (peer, `>=6.9.0 <7.0.0`).
-The data contract is `ConsentSnapshot` in `src/types.ts`, which mirrors
-`particle-academy/fancy-compliance`'s `ConsentManager::props()`.
+How an agent installs and uses this package in a consumer app. What the package
+is, is in [README.md](./README.md). Notes for working ON this repo's code are in
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
-## Where things are
+## Install
 
-- `src/context.tsx`: `ConsentProvider` (controlled) and `useConsent`. `allows()` is the one
-  rule: required is always true, unknown is false, otherwise a CURRENT decision granting it.
-- `src/ConsentBanner.tsx`: non-modal region. The three actions share `ACTION_CLASS` and
-  `ACTION_SIZE` from `src/styles.ts`.
-- `src/bannerSpace.ts`: `useConsentBannerSpace`, which the banner calls with its element.
-  Sets `--fancy-consent-banner-h` (bottom) / `--fancy-consent-banner-top-h` (top) on `<html>`
-  from a `ResizeObserver`, and pads `<body>` when `reserveSpace`. Effects only, never at
-  render (SSR); removes the variable and restores the body on hide and unmount.
-- `src/ConsentPreferences.tsx`: `Modal` plus its own focus management (react-fancy 6.9.0's
-  `Modal` runs `useFocusTrap` before `useAnimation` mounts the panel, so a Modal that starts
-  closed never moves, traps or restores focus). Saving only removals sends a withdrawal.
-- `src/ConsentGate.tsx`, `src/script.tsx` (`useConsentScript`), `src/ConsentReloadNotice.tsx`.
-- `src/client.ts`: fetch client for the Laravel routes, `useConsentController`, `readConsentProps`.
-  `useConsentController` fails soft on a missing `initial` (no banner, one dev warning).
-- `src/messages.ts`: `DEFAULT_MESSAGES` and the lookup order.
-- `src/ConsentHistory.tsx`: controlled, read-only list of `ConsentHistoryEntry` (mirrors
-  fancy-compliance's `ConsentHistoryEntry::toArray()`). Needs no provider, never fetches.
-  Deliberately OUTSIDE `AGENT_OFF_LIMITS`: agents may read history, and it records nothing.
-  Default time format is `en` / `UTC` so SSR and hydration agree. `tests/history.test.tsx`.
-- Data rights (CC-fancy-0038 phases 3 and 4). The contract is fancy-compliance's
-  `docs/data-rights-protocol.md` (version 1); `src/types.ts` mirrors it (`DataExportView`,
-  `DataExportList`, `DataErasureView`, ...).
-  - `src/DataExportPanel.tsx`: controlled list of exports + one request button per format.
-    `tests/data-export.test.tsx`.
-  - `src/AccountDeletionPanel.tsx`: controlled erasure view, staged request (`pendingMode`),
-    countdown from the `now` prop, retained-with-reason list after execution.
-    `tests/account-deletion.test.tsx`.
-  - `src/client.ts`: `createDataRightsClient` (shares `requestJson` with `createConsentClient`;
-    `ConsentRequestError.detail` carries the rest of an error body). No download call.
-  - `DATA_RIGHTS_OFF_LIMITS` in `src/agents.ts` (`data-agent-off-limits="legal"`).
-  - `fill()` / `codeKey()` in `src/messages.ts`: `{name}` placeholders and code-to-key lookup.
+```bash
+npm install @particle-academy/fancy-compliance-ui
+```
 
-## Invariants a change must keep
+- **Peers:** `@particle-academy/react-fancy >=6.9.0 <7.0.0`, React 19. No
+  runtime dependencies; Inertia is not required.
+- Tailwind v4 must scan both packages:
 
-- **Accept, reject and customise are equally prominent**: same component, `size`, classes and
-  container. `tests/banner.test.tsx` compares them.
-- **No optional category is pre-ticked** before a decision.
-- **`ConsentGate` never renders children before consent**, under a stale policy, or for an
-  unknown category.
-- **Script withdrawal is honest**: without a cleanup it reports `reload-required`, including for
-  a script still loading. Never claim a removed tag stopped anything.
-- **Agents read, never grant.** No export may record consent without the person acting, and any
-  future bridge is read-only. Activity events say `actor: "human"`.
-- **Every consent control's root spreads `AGENT_OFF_LIMITS`** (`src/agents.ts`,
-  `data-agent-off-limits="consent"`): the banner in every variant, the preferences dialog, the
-  trigger. agent-integrations' DOM navigation fences it; this package never imports that.
-  A new consent control gets it too. `tests/agent-off-limits.test.tsx` checks that no control
-  rendered by any component sits outside the fence.
-- **Every visible string goes through `t()`** or the category text lookup. No literals in JSX.
-- **One `action` class key, never a per-button key.** `classNames.action` reaches all three
-  choices; `tests/styling.test.tsx` has a `@ts-expect-error` that fails `tsc` if an `accept` /
-  `reject` key appears.
-- **Colours are react-fancy theme tokens, written literally** in `src/styles.ts` (Tailwind finds
-  classes by scanning `dist/`, so no runtime-built class names). Their fallbacks must equal
-  `THEME_TOKENS`, and the defaults must stay AAA: `tests/styling.test.tsx` checks both.
-- **App classes merge last** through `merge` (react-fancy's `cn`, tailwind-merge): ours first,
-  then `className`, then `classNames.<part>`.
-- `variant="bar"` with no new props keeps the 0.1.0 layout from `sm` up (0.3.0 changed the
-  phone layout only) and the `<section>` root; `card` and
-  `corner` are a react-fancy `Card`. Positions use logical `start-*` / `end-*`, never `left` /
-  `right`.
-- Targets `min-h-11`; `dir` on the banner and the dialog.
-- **`skipLink` renders before the banner region, as a sibling, always** (also when the banner
-  is hidden), and outside `AGENT_OFF_LIMITS`. It is a `ReactNode`, so the package never imports
-  react-fancy's `SkipLink`. With no `skipLink` the output is the region alone, unchanged.
-  `tests/skip-link.test.tsx` checks it is the first focusable element in every variant.
-- **The banner body is two texts, picked by CSS** (`sm:hidden` / `hidden sm:inline`), never by
-  JS width: `banner.body-short` below 640px, `banner.body` above it and always in the dialog
-  (`preferences-summary`). The bar's actions go three across by a container query on
-  `banner-layout` (`@min-[17rem]`). `tests/narrow.test.tsx` pins both (CC-fancy-0016).
-- **Data-rights controls are fenced, data-rights status is not.** Every control that requests,
-  confirms, cancels or downloads (export request buttons, the download link, erasure
-  request / confirm / keep / cancel) sits inside `DATA_RIGHTS_OFF_LIMITS`; the export rows and
-  the erasure status sit outside it. `tests/agent-off-limits.test.tsx` checks both.
-- **A download link renders only for a `ready` export**, whatever `download` says. Downloads
-  are links the signed-in person follows; the client never fetches an export.
-- **The erasure request is a staged write by default**: under `pendingMode` only confirm
-  calls `onRequest`.
-- **Data-rights panels never read the clock**: the countdown comes from the `now` prop, so SSR
-  and hydration agree.
-- **No default text promises compliance** with any law (`tests/data-export.test.tsx` scans the
-  export and erasure messages).
+  ```css
+  @import "tailwindcss";
+  @import "@particle-academy/react-fancy/styles.css";
+  @source "../node_modules/@particle-academy/react-fancy/dist/**/*.js";
+  @source "../node_modules/@particle-academy/fancy-compliance-ui/dist/**/*.js";
+  ```
 
-## Tests
+- The server half is the Laravel package `particle-academy/fancy-compliance`;
+  any backend serving the same JSON works.
 
-vitest + jsdom with `createRoot`/`act` (`tests/helpers.tsx`). `npm run lint` is `tsc` + the
-rules-of-hooks ESLint.
+## Find it on the Fancy MCP server
+
+The catalog server is `https://ui.particle.academy/mcp` (streamable HTTP, no API
+key; MCP id `fancy-ui`). This package's registry entries are
+`fancy-compliance-ui`, `consent-banner`, `consent-gate` and
+`consent-preferences`. Find them with `search-components` and get exact commands
+with `install-instructions`. The Laravel half is the entry `fancy-compliance`,
+found with `search-backend-packages` (stack `php`).
+
+## API essentials
+
+- `useConsentController(usePage().props.fancyCompliance)` (Inertia) or
+  `readConsentProps()` (Blade, after `@fancyComplianceProps`) feeds
+  `ConsentProvider`. To own the state, pass `value`, `onDecide` and `onWithdraw`
+  to `ConsentProvider` directly: it is fully controlled.
+- Mount `ConsentBanner`, `ConsentPreferences`, `ConsentPreferencesTrigger`
+  (usually in the footer) and `ConsentReloadNotice` inside the provider.
+- Gate content with `ConsentGate category="..."` and scripts with
+  `ConsentScript` / `useConsentScript`.
+- `useConsent()` gives `allows(key)`, `needsConsent`, `openPreferences()` and more.
+- Read-only and data-rights surfaces: `ConsentHistory`, `DataExportPanel`,
+  `AccountDeletionPanel`.
+- Stable handles: `data-fancy-compliance="banner" | "preferences" | "trigger" | ...`,
+  and every action button carries `data-fancy-compliance-action` (`accept-all`,
+  `reject-all`, `customise`, `save`, `close`, `reload`).
+- Every string is a translation key; pass `messages` to the provider.
+
+## Traps
+
+- **If `fancyCompliance` props are missing**, `useConsentController` does not
+  throw: no banner shows, nothing optional is allowed, and one dev warning is
+  logged. Check the route is in the `web` group (or add
+  `FancyCompliance\Http\ShareInertiaProps`), and use `fancy-compliance` 0.1.2 or
+  later under Octane.
+- **A script that already ran cannot be stopped.** On withdrawal without a
+  cleanup it reports `reload-required`; show `ConsentReloadNotice`.
+- **Never grant consent for the person** (see below). The consent and
+  data-rights controls are fenced against agents in the markup.
+
+## Agents (Human+)
+
+**An agent may read consent state. It must never grant, record or withdraw consent on a
+person's behalf.** Consent is the person's own act; one an agent gave for them is not
+consent. `useConsent()` exposes `decide` and `withdraw` only so a host can build its own
+consent UI for the person to use. If a bridge is ever added for this surface, it is
+read-only: it may report `allows`, the categories and the current decision, and nothing
+else. `onActivity` events always say `actor: "human"`.
+
+**The rule is enforced in the markup, not left to each host.** The banner (every variant:
+`bar`, `card`, `corner`), the preferences dialog and the preferences trigger each carry
+`data-agent-off-limits="consent"` on their root. That is the kit's fence for agents:
+`@particle-academy/agent-integrations` 0.58.0 or later refuses every agent action whose
+target resolves inside such an element (click, field set, submit, focus, scroll, and a label
+or button outside that would activate a control inside), refuses it before a `pendingMode`
+confirm can stage it, and describes the area to the agent only as "consent region" or
+"consent dialog", with no labels or values. A person approving an agent's click on
+"Accept all" would still be the agent's act, which is why a staged confirm is not enough.
+The full marker spec is in agent-integrations' README, under "Off-limits areas".
+
+This package does not import agent-integrations: the attribute is the whole contract, so any
+agent tool that honours it gets the rule. The `data-fancy-compliance*` handles are unchanged.
+If you build your own consent control from `useConsent()`, or put one in a `ConsentGate`
+`fallback`, spread the exported `AGENT_OFF_LIMITS` onto its root:
+
+```tsx
+import { AGENT_OFF_LIMITS } from "@particle-academy/fancy-compliance-ui";
+
+<div {...AGENT_OFF_LIMITS}>{/* your consent switch */}</div>
+```
+
+`ConsentReloadNotice` is not marked on its own: its one action reloads the page, which
+records nothing. Inside the dialog it is fenced with the rest.
+
+`ConsentHistory` is deliberately **not** fenced: agents may read a person's consent
+history. Its only control loads older entries, and nothing in it records consent.
+
+**Data rights are fenced the same way, with `data-agent-off-limits="legal"`**
+(`DATA_RIGHTS_OFF_LIMITS`). In `DataExportPanel` the request buttons and the download link
+sit inside it; in `AccountDeletionPanel` the request, the confirm step and cancel do. An
+agent may read export and erasure status (those rows are outside the fence); it may never
+ask for, confirm, cancel or download anything on a person's behalf.

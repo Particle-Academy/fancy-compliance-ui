@@ -70,6 +70,10 @@ relying on it.
 
 **Consumer action:** none. Nothing existing changed; the peer range is unchanged.
 
+### Changed
+
+- **Docs:** `AGENTS.md` is now the guide to using this package (install, its entries on the Fancy MCP catalog server, API essentials, traps) and ships in the package. The contributor notes moved to `CONTRIBUTING.md`, and `CLAUDE.md` is now a symlink to it. The README points to the MCP server and to `AGENTS.md`. No code changed; nothing to do.
+
 ## [0.4.0] - 2026-11-12
 
 ### Added
